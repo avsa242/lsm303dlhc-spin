@@ -1,28 +1,27 @@
 {
     --------------------------------------------
-    Filename: LSM303DLHC-Test.spin
-    Author:
-    Description:
+    Filename: LSM303DLHC-Demo.spin
+    Author: Jesse Burt
+    Description: Demo of the LSM303DLHC driver
     Copyright (c) 2020
-    Started Jul 29, 2020
-    Updated Jul 29, 2020
+    Started Jul 30, 2020
+    Updated Jul 31, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
-
 CON
 
     _clkmode    = cfg#_clkmode
     _xinfreq    = cfg#_xinfreq
 
 ' -- User-modifiable constants
+    LED         = cfg#LED1
     SER_RX      = 31
     SER_TX      = 30
     SER_BAUD    = 115_200
-    LED         = cfg#LED1
 
-    I2C_SCL     = 1
-    I2C_SDA     = 2
+    SCL_PIN     = 1
+    SDA_PIN     = 2
     I2C_HZ      = 400_000
 ' --
 
@@ -31,34 +30,132 @@ OBJ
     cfg     : "core.con.boardcfg.flip"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
+    io      : "io"
+    int     : "string.integer"
     imu     : "sensor.imu.6dof.lsm303dlhc.i2c"
 
-PUB Main{} | x, y, z
+VAR
 
-    Setup{}
-    imu.acceldatarate(100)
+    long _overruns
+
+PUB Main | dispmode
+
+    Setup
+
+    imu.acceladcres(12)                                     ' 8, 10, 12 (low-power, normal, high-res, resp.)
+    imu.accelscale(2)                                       ' 2, 4, 8, 16 (g's)
+    imu.acceldatarate(50)                                   ' 0, 1, 10, 25, 50, 100, 200, 400, 1344, 1600
+    imu.accelaxisenabled(%111)                              ' 0 or 1 for each bit (%xyz)
+    imu.fifomode(imu#BYPASS)                                ' imu#BYPASS, imu#FIFO, imu#STREAM, imu#TRIGGER
+'    imu.intthresh(1_000000)                                ' 0..16_000000 (ug's, i.e., 0..16g)
+'    imu.intmask(%100000)                                   ' Bits 5..0: Zhigh event | Zlow event | Yh|Yl|Xh|Xl
+
+    ser.hidecursor{}
+    dispmode := 0
+
+    ser.position(0, 3)                                      ' Read back the settings from above
+    ser.str(string("AccelScale: "))                         '
+    ser.dec(imu.accelscale(-2))
+    ser.newline{}
+    ser.str(string("AccelADCRes: "))
+    ser.dec(imu.acceladcres(-2))
+    ser.newline{}
+    ser.str(string("AccelDataRate: "))
+    ser.dec(imu.acceldatarate(-2))
+    ser.newline{}
+    ser.str(string("FIFOMode: "))
+    ser.dec(imu.fifomode(-2))
+    ser.newline{}
+'    ser.str(string("IntThresh: "))
+'    ser.dec(imu.intthresh(-2))
+    ser.newline{}
+'    ser.str(string("IntMask: "))
+'    ser.bin(imu.intmask(-2), 6)
     repeat
-        ser.position(0, 5)
-        imu.acceldata(@x, @y, @z)
-        ser.dec(x)
-        ser.char(" ")
-        ser.dec(y)
-        ser.char(" ")
-        ser.dec(z)
+        case ser.rxcheck{}
+            "q", "Q":                                       ' Quit the demo
+                ser.position(0, 15)
+                ser.str(string("Halting"))
+                imu.stop{}
+                time.msleep(5)
+                ser.stop
+                quit
+            "c", "C":                                       ' Perform calibration
+                calibrate{}
+            "r", "R":                                       ' Change display mode: raw/calculated
+                ser.position(0, 10)
+                repeat 2
+                    ser.clearline(ser#CLR_CUR_TO_END)
+                    ser.newline{}
+                dispmode ^= 1
 
-PUB Setup
+        ser.position (0, 10)
+        case dispmode
+            0: accelraw{}
+            1: accelcalc{}
 
-    repeat until ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+'        ser.position (0, 12)
+'        ser.str(string("Interrupt: "))
+'        ser.str(lookupz(imu.interrupt{} >> 6: string("No "), string("Yes")))
+
+    ser.showcursor{}
+    flashled(LED, 100)
+
+PUB AccelCalc{} | ax, ay, az
+
+    repeat until imu.acceldataready{}
+    imu.accelg (@ax, @ay, @az)
+    if imu.acceldataoverrun{}
+        _overruns++
+    ser.str (string("accel micro-g: "))
+    ser.str (int.decpadded (ax, 10))
+    ser.str (int.decpadded (ay, 10))
+    ser.str (int.decpadded (az, 10))
+    ser.newline{}
+    ser.str (string("Overruns: "))
+    ser.Dec (_overruns)
+
+PUB AccelRaw{} | ax, ay, az
+
+    repeat until imu.acceldataready{}
+    imu.accelData (@ax, @ay, @az)
+    if imu.acceldataoverrun{}
+        _overruns++
+    ser.str (string("Raw accel: "))
+
+    ser.str (int.decpadded (ax, 7))
+    ser.str (int.decpadded (ay, 7))
+    ser.str (int.decpadded (az, 7))
+    ser.clearline(ser#CLR_CUR_TO_END)
+    ser.newline{}
+    ser.str (string("Overruns: "))
+    ser.dec (_overruns)
+
+PUB Calibrate{}
+
+    ser.position (0, 12)
+    ser.str(string("Calibrating..."))
+    imu.calibrateaccel{}
+    ser.position (0, 12)
+    ser.str(string("              "))
+
+PUB Setup{}
+
+    repeat until ser.startrxtx{} (SER_RX, SER_TX, 0, SER_BAUD)
     time.msleep(30)
-    ser.clear
+    ser.clear{}
     ser.str(string("Serial terminal started", ser#CR, ser#LF))
-    if imu.startx(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.str(string("LSM303DLHC driver started", ser#CR, ser#LF))
+    if imu.startx(SCL_PIN, SDA_PIN, I2C_HZ)
+        imu.defaults{}
+        ser.str(string("LSM303DLHC driver started (I2C)", ser#CR, ser#LF))
     else
         ser.str(string("LSM303DLHC driver failed to start - halting", ser#CR, ser#LF))
-        imu.stop{}
-        time.msleep(50)
-        ser.stop{}
+        imu.stop
+        time.msleep(5)
+        ser.stop
+        flashled(LED, 500)
+
+#include "lib.utility.spin"
 
 DAT
 {
