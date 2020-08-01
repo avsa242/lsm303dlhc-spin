@@ -68,7 +68,7 @@ PUB Main{} | dispmode
     ser.dec(imu.acceldatarate(-2))
     ser.newline{}
     ser.str(string("FIFOMode: "))
-    ser.dec(imu.fifomode(-2))
+    ser.str(lookupz(imu.fifomode(-2): string("BYPASS"), string("FIFO"), string("STREAM"), string("STREAM2FIFO")))
     ser.newline{}
 '    ser.str(string("IntThresh: "))
 '    ser.dec(imu.intthresh(-2))
@@ -175,6 +175,7 @@ PUB Calibrate{}
     ser.position(0, 12)
     ser.str(string("Calibrating..."))
     imu.calibrateaccel{}
+    imu.calibratemag{}
     ser.position(0, 12)
     ser.str(string("              "))
 

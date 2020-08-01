@@ -30,6 +30,8 @@ CON
     BARO_DOF        = 0
     DOF             = ACCEL_DOF + GYRO_DOF + MAG_DOF + BARO_DOF
 
+    FP_SCALE        = 1_000_000
+
     R               = 0
     W               = 1
 
@@ -73,9 +75,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
             if okay := i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
                 time.msleep (1)
                 if i2c.present (XL_SLAVE_WR)                    'Response from device?
-'                    if deviceid{}
-                        return okay
-
+                    return okay
     return FALSE                                                'If we got here, something went wrong
 
 PUB Stop{}
@@ -153,18 +153,15 @@ PUB AccelBias(axbias, aybias, azbias, rw)
             long[axbias] := _abiasraw[XAXIS]
             long[aybias] := _abiasraw[YAXIS]
             long[azbias] := _abiasraw[ZAXIS]
-
         W:
             case axbias
                 -1024..1023:
                     _abiasraw[XAXIS] := axbias
                 OTHER:
-
             case aybias
                 -1024..1023:
                     _abiasraw[YAXIS] := aybias
                 OTHER:
-
             case azbias
                 -1024..1023:
                     _abiasraw[ZAXIS] := azbias
@@ -237,7 +234,6 @@ PUB AccelScale(g): curr_range
         2, 4, 8, 16:
             g := lookdownz(g: 2, 4, 8, 16)
             _ares := lookupz(g: 1_000, 2_000, 4_000, 12_000)
-
             g <<= core#FLD_FS
         OTHER:
             curr_range := (curr_range >> core#FLD_FS) & core#BITS_FS
@@ -247,44 +243,67 @@ PUB AccelScale(g): curr_range
     curr_range := (curr_range | g) & core#CTRL_REG4_MASK
     writereg(core#CTRL_REG4, 1, @curr_range)
 
-PUB CalibrateAccel{} | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, samples, orig_state
+PUB CalibrateAccel{} | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, nr_samples, orig_state
 ' Calibrate the accelerometer
 '   NOTE: The accelerometer must be oriented with the package top facing up for this method to be successful
-    tmpx := tmpy := tmpz := axis := samples := 0
+    tmpx := tmpy := tmpz := axis := nr_samples := 0
     longfill(@tmpbiasraw, 0, 3)
     accelbias(0, 0, 0, W)
-    orig_state.byte[0] := acceladcres(-2)
-    orig_state.byte[1] := accelscale(-2)
-    orig_state.word[1] := acceldatarate(-2)
+    orig_state.byte[0] := acceladcres(-2)                   ' Store these current accelerometer settings,
+    orig_state.byte[1] := accelscale(-2)                    '   because we're going to (potentially) change them
+    orig_state.word[1] := acceldatarate(-2)                 '   for the duration of calibration
 
     acceladcres(12)
     accelscale(2)
     acceldatarate(100)
 
-    fifoenabled(TRUE)
+    fifoenabled(TRUE)                                       ' Enable the FIFO for the duration of calibration
     fifomode(FIFO)
     fifothreshold (32)
-    samples := fifothreshold(-2)
-    repeat until fifofull{}
+    nr_samples := fifothreshold(-2)                         ' We could just use the constant '32' again, but read it back
+    repeat until fifofull{}                                 '   from the sensor instead, to make sure it's listening
 
-    repeat samples
-' Read the accel data stored in the FIFO
-        acceldata(@tmpx, @tmpy, @tmpz)
+    repeat nr_samples                                       ' Read the accel data stored in the FIFO
+        acceldata(@tmpx, @tmpy, @tmpz)                      ' Accumulate samples for each axis
         tmpbiasraw[XAXIS] += tmpx
         tmpbiasraw[YAXIS] += tmpy
         tmpbiasraw[ZAXIS] += tmpz + (1024000/_ares)         ' Assumes sensor facing up!
 
-    accelbias(tmpbiasraw[XAXIS]/samples, tmpbiasraw[YAXIS]/samples, tmpbiasraw[ZAXIS]/samples, W)
+    accelbias(tmpbiasraw[XAXIS]/nr_samples, tmpbiasraw[YAXIS]/nr_samples, tmpbiasraw[ZAXIS]/nr_samples, W)
 
-    fifoenabled(FALSE)
+    fifoenabled(FALSE)                                      ' Turn off the FIFO
     fifomode(BYPASS)
 
-    acceladcres(orig_state.byte[0])
-    accelscale(orig_state.byte[1])
+    acceladcres(orig_state.byte[0])                         ' Restore the accelerometer settings to their states
+    accelscale(orig_state.byte[1])                          '   prior to calibration
     acceldatarate(orig_state.word[1])
 
-PUB CalibrateMag{}
-' Dummy method
+PUB CalibrateMag{} | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, samples, orig_state
+' Calibrate the accelerometer
+'   NOTE: The accelerometer must be oriented with the package top facing up for this method to be successful
+    longfill(@tmpx, 0, 9)                                   ' Initialize vars to 0
+    samples := 32
+    magbias(0, 0, 0, W)
+    orig_state.byte[0] := magopmode(-2)                     ' Store these current magnetometer settings,
+    orig_state.byte[1] := magscale(-2)                      '   because we're going to (potentially) change them
+    orig_state.byte[2] := magdatarate(-2)                   '   for the duration of calibration
+
+    magopmode(MAG_CONT)
+    magscale(1_3)
+    magdatarate(75)
+
+    repeat samples
+        magdata(@tmpx, @tmpy, @tmpz)                        ' Read magnetometer data and accumulate it
+        tmpbiasraw[XAXIS] += tmpx                           '   for each axis
+        tmpbiasraw[YAXIS] += tmpy
+        tmpbiasraw[ZAXIS] += tmpz
+
+' Store the average of those samples in the bias/offset variables
+    magbias(tmpbiasraw[XAXIS]/samples, tmpbiasraw[YAXIS]/samples, tmpbiasraw[ZAXIS]/samples, W)
+
+    magopmode(orig_state.byte[0])                           ' Restore the magnetometer settings to their states
+    magscale(orig_state.byte[1])                            '   prior to calibration
+    magdatarate(orig_state.byte[2])
 
 PUB ClickAxisEnabled(mask): enabled_axes
 ' Enable click detection per axis, and per click type

@@ -12,8 +12,8 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the LSM303D
 * Set output data rate
 * Set full-scale range
 * Enable per-axis output (accel)
-* Flags to indicate data is ready (accel, mag), or has overrun (accel)
-* Set calibration offsets (accel)
+* Flags to indicate data is ready (accel, mag), has overrun (accel), has overflowed current scale setting (mag)
+* Set calibration offsets (accel, mag)
 * FIFO control and flag reading (accel; empty, full, number of unread samples)
 * Single and double-click detection (accel; untested)
 
@@ -40,7 +40,7 @@ P2/SPIN2:
 ## TODO
 
 - [x] Add magnetometer support
-- [ ] Add magnetometer calibration
+- [x] Add magnetometer calibration
 - [ ] Add interrupt support
 - [ ] Add click detection demo
 - [ ] Port to P2/SPIN2
