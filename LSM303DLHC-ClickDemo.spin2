@@ -1,9 +1,9 @@
 {
     --------------------------------------------
-    Filename: LSM303DLHC-ClickDemo.spin
+    Filename: LSM303DLHC-ClickDemo.spin2
     Author: Jesse Burt
     Description: Demo of the LSM303DLHC driver
-        click-detection functionality
+        click-detection functionality (P2 version)
     Copyright (c) 2020
     Started Aug 1, 2020
     Updated Aug 1, 2020
@@ -12,19 +12,18 @@
 }
 CON
 
-    _clkmode    = cfg#_clkmode
-    _xinfreq    = cfg#_xinfreq
+    _clkfreq    = cfg#_clkfreq_def
+    _xtlfreq    = cfg#_xtlfreq
 
 ' -- User-modifiable constants
     LED         = cfg#LED1
-    SER_RX      = 31
-    SER_TX      = 30
-    SER_BAUD    = 115_200
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
 
-    SCL_PIN     = 1
-    SDA_PIN     = 2
+    SCL_PIN     = 26
+    SDA_PIN     = 27
     I2C_HZ      = 400_000
-    SLAVE_OPT   = 1
 ' --
 
     TEXT_COL    = 0
@@ -37,7 +36,7 @@ CON
 
 OBJ
 
-    cfg     : "core.con.boardcfg.flip"
+    cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
     io      : "io"
@@ -49,9 +48,9 @@ VAR
     long _overruns
     long _total, _doubles, _singles
 
-PUB Main{} | dispmode, click_src, int_act, dclicked, sclicked, sign, z_clicked, y_clicked, x_clicked, row
+PUB Main() | dispmode, click_src, int_act, dclicked, sclicked, sign, z_clicked, y_clicked, x_clicked, row
 
-    setup{}
+    setup()
 
     imu.acceladcres(12)                                   ' 8, 10, 12 (low-power, normal, high-res, resp.)
     imu.accelscale(4)                                     ' 2, 4, 8, 16 (g's)
@@ -62,32 +61,32 @@ PUB Main{} | dispmode, click_src, int_act, dclicked, sclicked, sign, z_clicked, 
 '                                                             [5..4]: Z-axis double-click..single-click
 '                                                             [3..2]: Y-axis double-click..single-click
 '                                                             [1..0]: X-axis double-click..single-click
-'    imu.clickaxisenabled(%01_00_00)                       ' <- for detecting z-axis single-clicks only
+'    imu.clickaxisenabled(%01_00_00)                       ' rol for detecting z-axis single-clicks only
     imu.clicktime(127_000)                                ' Microseconds (range depends on data rate)
     imu.doubleclickwindow(637_500)                        ' Microseconds (range depends on data rate)
     imu.clicklatency(150_000)                             ' Microseconds (range depends on data rate)
 '    imu.clicklatency(637_500)                             ' more suitable for single-clicks
     imu.clickintenabled(TRUE)
 
-    ser.newline{}
-    ser.hidecursor{}
+    ser.newline()
+    ser.hidecursor()
 
     row := 4
-    showdatum(string("AccelADCRes: "), DEC, imu.acceladcres(-2), 2, string("bits"), row)
-    showdatum(string("AccelScale: "), DEC, imu.accelscale(-2), 2, string("g"), ++row)
-    showdatum(string("AccelDataRate: "), DEC, imu.acceldatarate(-2), 4, string("Hz"), ++row)
-    showdatum(string("AccelAxisEnabled: "), BIN, imu.accelaxisenabled(-2), 3, NUL, ++row)
-    showdatum(string("FIFOMode: "), STR, lookupz(imu.fifomode(-2): string("Bypass"), string("FIFO"), string("stream")), NUL, NUL, ++row)
-    showdatum(string("IntThresh: "), DEC, imu.intthresh(-2), 12, string("u-g"), ++row)
-    showdatum(string("IntMask: "), BIN, imu.intmask(-2), 6, NUL, ++row)
-    showdatum(string("ClickThresh: "), DEC, imu.clickthresh(-2), 12, string("u-g"), ++row)
-    showdatum(string("ClickAxisEnabled: "), BIN, imu.clickaxisenabled(-2), 3, NUL, ++row)
-    showdatum(string("ClickTime: "), DEC, imu.clicktime(-2), 12, string("uS"), ++row)
-    showdatum(string("DoubleClickWindow: "), DEC, imu.doubleclickwindow(-2), 12, string("uS"), ++row)
-    showdatum(string("ClickLatency: "), DEC, imu.clicklatency(-2), 12, string("uS"), ++row)
+    showdatum(string("AccelADCRes: "), DEC, imu.acceladcres(), 2, string("bits"), row)
+    showdatum(string("AccelScale: "), DEC, imu.accelscale(), 2, string("g"), ++row)
+    showdatum(string("AccelDataRate: "), DEC, imu.acceldatarate(), 4, string("Hz"), ++row)
+    showdatum(string("AccelAxisEnabled: "), BIN, imu.accelaxisenabled(), 3, NUL, ++row)
+    showdatum(string("FIFOMode: "), STR, lookupz(imu.fifomode(): string("Bypass"), string("FIFO"), string("stream")), NUL, NUL, ++row)
+    showdatum(string("IntThresh: "), DEC, imu.intthresh(), 12, string("u-g"), ++row)
+    showdatum(string("IntMask: "), BIN, imu.intmask(), 6, NUL, ++row)
+    showdatum(string("ClickThresh: "), DEC, imu.clickthresh(), 12, string("u-g"), ++row)
+    showdatum(string("ClickAxisEnabled: "), BIN, imu.clickaxisenabled(), 3, NUL, ++row)
+    showdatum(string("ClickTime: "), DEC, imu.clicktime(), 12, string("uS"), ++row)
+    showdatum(string("DoubleClickWindow: "), DEC, imu.doubleclickwindow(), 12, string("uS"), ++row)
+    showdatum(string("ClickLatency: "), DEC, imu.clicklatency(), 12, string("uS"), ++row)
 
     repeat
-        click_src := imu.clickedint{}
+        click_src := imu.clickedint()
         int_act := ((click_src >> 6) & 1)
         dclicked := ((click_src >> 5) & 1)
         sclicked := ((click_src >> 4) & 1)
@@ -105,7 +104,7 @@ PUB Main{} | dispmode, click_src, int_act, dclicked, sclicked, sign, z_clicked, 
         showdatum(string("Y-axis clicked:"), STR, lookupz(y_clicked: string("No "), string("Yes")), NUL, NUL, ++row)
         showdatum(string("X-axis clicked:"), STR, lookupz(x_clicked: string("No "), string("Yes")), NUL, NUL, ++row)
 
-    ser.showcursor{}
+    ser.showcursor()
     flashled(LED, 100)
 
 PUB ShowDatum(ptr_msg, val_type, val, digits, ptr_suffix, text_row)
@@ -130,23 +129,22 @@ PUB ShowDatum(ptr_msg, val_type, val, digits, ptr_suffix, text_row)
         OTHER:
             ser.str(ptr_suffix)
 
-PUB Setup{}
+PUB Setup()
 
     repeat until ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
-    time.msleep(30)
-    ser.clear{}
-    ser.str(string("Serial terminal started", ser#CR, ser#LF))
-    if imu.startx(SCL_PIN, SDA_PIN, I2C_HZ)
-        imu.defaults{}
-        ser.str(string("LSM303DLHC driver started (I2C)", ser#CR, ser#LF))
+    waitms(30)
+    ser.clear()
+    ser.printf("Serial terminal started\n")
+    if imu.start(SCL_PIN, SDA_PIN, I2C_HZ)
+        imu.defaults()
+        ser.printf("LSM303DLHC driver started (I2C)\n")
     else
-        ser.str(string("LSM303DLHC driver failed to start - halting", ser#CR, ser#LF))
-        imu.stop{}
-        time.msleep(5)
-        ser.stop{}
+        ser.printf("LSM303DLHC driver failed to start - halting\n")
+        imu.stop()
+        waitms(5)
         flashled(LED, 500)
 
-#include "lib.utility.spin"
+#include "lib.utility.spin2"
 
 DAT
 {
