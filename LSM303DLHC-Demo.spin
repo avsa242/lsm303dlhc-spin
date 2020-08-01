@@ -5,7 +5,7 @@
     Description: Demo of the LSM303DLHC driver
     Copyright (c) 2020
     Started Jul 30, 2020
-    Updated Jul 31, 2020
+    Updated Aug 1, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,9 +38,9 @@ VAR
 
     long _overruns
 
-PUB Main | dispmode
+PUB Main{} | dispmode
 
-    Setup
+    Setup{}
 
     imu.acceladcres(12)                                     ' 8, 10, 12 (low-power, normal, high-res, resp.)
     imu.accelscale(2)                                       ' 2, 4, 8, 16 (g's)
@@ -49,6 +49,10 @@ PUB Main | dispmode
     imu.fifomode(imu#BYPASS)                                ' imu#BYPASS, imu#FIFO, imu#STREAM, imu#TRIGGER
 '    imu.intthresh(1_000000)                                ' 0..16_000000 (ug's, i.e., 0..16g)
 '    imu.intmask(%100000)                                   ' Bits 5..0: Zhigh event | Zlow event | Yh|Yl|Xh|Xl
+
+    imu.magscale(1_3)
+    imu.magdatarate(15)
+    imu.magopmode(imu#MAG_CONT)
 
     ser.hidecursor{}
     dispmode := 0
@@ -71,6 +75,15 @@ PUB Main | dispmode
     ser.newline{}
 '    ser.str(string("IntMask: "))
 '    ser.bin(imu.intmask(-2), 6)
+    ser.str(string("MagScale: "))                         '
+    ser.dec(imu.magscale(-2))
+    ser.newline{}
+    ser.str(string("MagDataRate: "))
+    ser.dec(imu.magdatarate(-2))
+    ser.newline{}
+    ser.str(string("MagOpMode: "))
+    ser.dec(imu.magopmode(-2))
+    ser.newline{}
     repeat
         case ser.rxcheck{}
             "q", "Q":                                       ' Quit the demo
@@ -83,18 +96,22 @@ PUB Main | dispmode
             "c", "C":                                       ' Perform calibration
                 calibrate{}
             "r", "R":                                       ' Change display mode: raw/calculated
-                ser.position(0, 10)
+                ser.position(0, 15)
                 repeat 2
                     ser.clearline(ser#CLR_CUR_TO_END)
                     ser.newline{}
                 dispmode ^= 1
 
-        ser.position (0, 10)
+        ser.position(0, 15)
         case dispmode
-            0: accelraw{}
-            1: accelcalc{}
+            0:
+                accelraw{}
+                magraw{}
+            1:
+                accelcalc{}
+                magcalc{}
 
-'        ser.position (0, 12)
+'        ser.position(0, 12)
 '        ser.str(string("Interrupt: "))
 '        ser.str(lookupz(imu.interrupt{} >> 6: string("No "), string("Yes")))
 
@@ -107,13 +124,13 @@ PUB AccelCalc{} | ax, ay, az
     imu.accelg (@ax, @ay, @az)
     if imu.acceldataoverrun{}
         _overruns++
-    ser.str (string("accel micro-g: "))
-    ser.str (int.decpadded (ax, 10))
-    ser.str (int.decpadded (ay, 10))
-    ser.str (int.decpadded (az, 10))
+    ser.str(string("accel micro-g: "))
+    ser.str(int.decpadded(ax, 10))
+    ser.str(int.decpadded(ay, 10))
+    ser.str(int.decpadded(az, 10))
+    ser.str(string("  Overruns: "))
+    ser.dec (_overruns)
     ser.newline{}
-    ser.str (string("Overruns: "))
-    ser.Dec (_overruns)
 
 PUB AccelRaw{} | ax, ay, az
 
@@ -121,22 +138,44 @@ PUB AccelRaw{} | ax, ay, az
     imu.accelData (@ax, @ay, @az)
     if imu.acceldataoverrun{}
         _overruns++
-    ser.str (string("Raw accel: "))
+    ser.str(string("Raw accel: "))
 
-    ser.str (int.decpadded (ax, 7))
-    ser.str (int.decpadded (ay, 7))
-    ser.str (int.decpadded (az, 7))
+    ser.str(int.decpadded(ax, 7))
+    ser.str(int.decpadded(ay, 7))
+    ser.str(int.decpadded(az, 7))
+    ser.str(string("  Overruns: "))
+    ser.dec (_overruns)
+    ser.newline{}
+
+PUB MagCalc{} | mx, my, mz
+
+    repeat until imu.magdataready{}
+    imu.maggauss (@mx, @my, @mz)
+    ser.str(string("Mag Gauss:   "))
+    ser.str(int.decpadded(mx, 10))
+    ser.str(int.decpadded(my, 10))
+    ser.str(int.decpadded(mz, 10))
     ser.clearline(ser#CLR_CUR_TO_END)
     ser.newline{}
-    ser.str (string("Overruns: "))
-    ser.dec (_overruns)
+
+PUB MagRaw{} | mx, my, mz
+
+    repeat until imu.magdataready{}
+    imu.magdata (@mx, @my, @mz)
+    ser.str(string("Mag raw:  "))
+
+    ser.str(int.decpadded(mx, 7))
+    ser.str(int.decpadded(my, 7))
+    ser.str(int.decpadded(mz, 7))
+    ser.clearline(ser#CLR_CUR_TO_END)
+    ser.newline{}
 
 PUB Calibrate{}
 
-    ser.position (0, 12)
+    ser.position(0, 12)
     ser.str(string("Calibrating..."))
     imu.calibrateaccel{}
-    ser.position (0, 12)
+    ser.position(0, 12)
     ser.str(string("              "))
 
 PUB Setup{}
@@ -150,9 +189,9 @@ PUB Setup{}
         ser.str(string("LSM303DLHC driver started (I2C)", ser#CR, ser#LF))
     else
         ser.str(string("LSM303DLHC driver failed to start - halting", ser#CR, ser#LF))
-        imu.stop
+        imu.stop{}
         time.msleep(5)
-        ser.stop
+        ser.stop{}
         flashled(LED, 500)
 
 #include "lib.utility.spin"

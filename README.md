@@ -8,14 +8,14 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the LSM303D
 ## Salient Features
 
 * I2C connection at up to 400kHz
-* Read raw or scaled accelerometer data output
+* Read raw accelerometer, magnetometer data output, or scaled (micro-g's, micro-gauss, resp.)
 * Set output data rate
 * Set full-scale range
-* Enable per-axis output
-* Flags to indicate data is ready, or has overrun
-* Set calibration offsets
-* FIFO control and flag reading (empty, full, number of unread samples)
-* Single and double-click detection (untested)
+* Enable per-axis output (accel)
+* Flags to indicate data is ready (accel, mag), or has overrun (accel)
+* Set calibration offsets (accel)
+* FIFO control and flag reading (accel; empty, full, number of unread samples)
+* Single and double-click detection (accel; untested)
 
 ## Requirements
 
@@ -39,5 +39,8 @@ P2/SPIN2:
 
 ## TODO
 
-- [ ] Add magnetometer support
+- [x] Add magnetometer support
+- [ ] Add magnetometer calibration
+- [ ] Add interrupt support
+- [ ] Add click detection demo
 - [ ] Port to P2/SPIN2

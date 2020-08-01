@@ -157,8 +157,22 @@ CON
     TIME_WINDOW         = $323D
 
     CRA_REG_M           = $3C00
+    CRA_REG_M_MASK      = $9C
+        FLD_TEMP_EN     = 7
+        FLD_DO          = 2
+        BITS_DO         = %111
+        MASK_TEMP_EN    = CRA_REG_M_MASK ^ (1 << FLD_TEMP_EN)
+        MASK_DO         = CRA_REG_M_MASK ^ (BITS_DO << FLD_DO)
+
     CRB_REG_M           = $3C01
+    CRB_REG_M_MASK      = $E0
+        FLD_GN          = 5
+        BITS_GN         = %111
+
     MR_REG_M            = $3C02
+    MR_REG_M_MASK       = $03
+        FLD_MD          = 0
+        BITS_MD         = %11
 
     OUT_X_H_M           = $3C03
     OUT_X_L_M           = $3C04
@@ -168,6 +182,11 @@ CON
     OUT_Z_L_M           = $3C08
 
     SR_REG_M            = $3C09
+        FLD_LOCK        = 1
+        FLD_DRDY        = 0
+        BITS_LOCK       = %1
+        BITS_DRDY       = %1
+
     IRA_REG_M           = $3C0A
     IRB_REG_M           = $3C0B
     IRC_REG_M           = $3C0C
