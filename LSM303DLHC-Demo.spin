@@ -47,8 +47,8 @@ PUB Main{} | dispmode
     imu.acceldatarate(50)                                   ' 0, 1, 10, 25, 50, 100, 200, 400, 1344, 1600
     imu.accelaxisenabled(%111)                              ' 0 or 1 for each bit (%xyz)
     imu.fifomode(imu#BYPASS)                                ' imu#BYPASS, imu#FIFO, imu#STREAM, imu#TRIGGER
-'    imu.intthresh(1_000000)                                ' 0..16_000000 (ug's, i.e., 0..16g)
-'    imu.intmask(%100000)                                   ' Bits 5..0: Zhigh event | Zlow event | Yh|Yl|Xh|Xl
+    imu.intthresh(1_000000)                                 ' 0..16_000000 (micro-g's, i.e., 0..16g)
+    imu.intmask(%100000)                                    ' Bits 5..0: Zhigh event | Zlow event | Yh|Yl|Xh|Xl
 
     imu.magscale(1_3)
     imu.magdatarate(15)
@@ -58,7 +58,7 @@ PUB Main{} | dispmode
     dispmode := 0
 
     ser.position(0, 3)                                      ' Read back the settings from above
-    ser.str(string("AccelScale: "))                         '
+    ser.str(string("AccelScale: "))
     ser.dec(imu.accelscale(-2))
     ser.newline{}
     ser.str(string("AccelADCRes: "))
@@ -70,11 +70,12 @@ PUB Main{} | dispmode
     ser.str(string("FIFOMode: "))
     ser.str(lookupz(imu.fifomode(-2): string("BYPASS"), string("FIFO"), string("STREAM"), string("STREAM2FIFO")))
     ser.newline{}
-'    ser.str(string("IntThresh: "))
-'    ser.dec(imu.intthresh(-2))
+    ser.str(string("IntThresh: "))
+    ser.dec(imu.intthresh(-2))
     ser.newline{}
-'    ser.str(string("IntMask: "))
-'    ser.bin(imu.intmask(-2), 6)
+    ser.str(string("IntMask: "))
+    ser.bin(imu.intmask(-2), 6)
+    ser.newline{}
     ser.str(string("MagScale: "))                         '
     ser.dec(imu.magscale(-2))
     ser.newline{}
@@ -111,9 +112,9 @@ PUB Main{} | dispmode
                 accelcalc{}
                 magcalc{}
 
-'        ser.position(0, 12)
-'        ser.str(string("Interrupt: "))
-'        ser.str(lookupz(imu.interrupt{} >> 6: string("No "), string("Yes")))
+        ser.position(0, 20)
+        ser.str(string("Interrupt: "))
+        ser.str(lookupz(imu.interrupt{} >> 6: string("No "), string("Yes")))
 
     ser.showcursor{}
     flashled(LED, 100)

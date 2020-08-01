@@ -279,8 +279,7 @@ PUB CalibrateAccel{} | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, nr_samples, orig_s
     acceldatarate(orig_state.word[1])
 
 PUB CalibrateMag{} | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, samples, orig_state
-' Calibrate the accelerometer
-'   NOTE: The accelerometer must be oriented with the package top facing up for this method to be successful
+' Calibrate the magnetometer
     longfill(@tmpx, 0, 9)                                   ' Initialize vars to 0
     samples := 32
     magbias(0, 0, 0, W)
@@ -530,6 +529,62 @@ PUB FIFOUnreadSamples{}: nr_samples
 '   Returns: 1..32
     readreg(core#FIFO_SRC_REG, 1, @nr_samples)
     nr_samples := (nr_samples & core#BITS_FSS) + 1
+
+PUB Interrupt{}: curr_state
+' Read interrupt state
+'   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
+'       6: One or more interrupts have been generated
+'       5: Z-axis high event
+'       4: Z-axis low event
+'       3: Y-axis high event
+'       2: Y-axis low event
+'       1: X-axis high event
+'       0: X-axis low event
+    readreg(core#INT1_SRC, 1, @curr_state)
+
+PUB IntMask(mask): curr_mask
+' Set interrupt mask
+'   Bits:   543210
+'       5: Z-axis high event
+'       4: Z-axis low event
+'       3: Y-axis high event
+'       2: Y-axis low event
+'       1: X-axis high event
+'       0: X-axis low event
+'   Valid values: %000000..%111111
+'   Any other value polls the chip and returns the current setting
+    case mask
+        %000000..%111111:
+        OTHER:
+            curr_mask := $00
+            readreg(core#INT1_CFG, 1, @curr_mask)
+            return
+
+    writereg(core#INT1_CFG, 1, @mask)
+
+PUB IntThresh(level): curr_lvl
+' Set interrupt threshold level, in micro-g's
+'   Valid values: 0..16_000000
+    case level
+        0..16_000000:                                       ' 0..16_000000 = 0..16M micro-g's = 0..16 g's
+        OTHER:
+            curr_lvl := $00
+            readreg(core#INT1_THS, 1, @curr_lvl)
+            case accelscale(-2)                             '
+                2: curr_lvl *= 16_000                       '
+                4: curr_lvl *= 32_000                       '
+                8: curr_lvl *= 62_000                       '
+                16: curr_lvl *= 186_000                     ' Scale threshold register's 7-bit range
+            return                                          '   to micro-g's
+
+    case accelscale(-2)                                     '
+        2: curr_lvl := 16_000                               '
+        4: curr_lvl := 32_000                               '
+        8: curr_lvl := 62_000                               '
+        16: curr_lvl := 186_000                             ' Scale micro-g's to threshold register's
+
+    level /= curr_lvl                                       '   7-bit range
+    writereg(core#INT1_THS, 1, @level)
 
 PUB MagBias(mxbias, mybias, mzbias, rw) | axis, msb, lsb
 ' Read or write/manually set Magnetometer calibration offset values
