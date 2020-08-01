@@ -22,6 +22,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the LSM303D
 
 P1/SPIN1:
 * spin-standard-library
+* 1 extra core/cog for the PASM I2C driver
 
 P2/SPIN2:
 * p2-spin-standard-library
