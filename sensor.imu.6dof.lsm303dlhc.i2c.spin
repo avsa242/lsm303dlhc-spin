@@ -47,9 +47,9 @@ CON
     STREAM2FIFO     = %11
 
 ' Magnetometer operating modes
-    MAG_CONT        = 0
-    MAG_SINGLE      = 1
-    MAG_SLEEP       = 2
+    CONT            = 0
+    SINGLE          = 1
+    SLEEP           = 2
 
 VAR
 
@@ -97,7 +97,21 @@ PUB Preset_Active{}
 '   * 50Hz accelerometer sample rate
     acceldatarate(50)
     accelscale(2)
+    magopmode(CONT)
     magscale(1_3)
+
+PUB Preset_ClickDet{}
+' Presets for click-detection
+    acceladcres(12)
+    accelscale(4)
+    acceldatarate(400)
+    accelaxisenabled(%111)
+    clickthresh(1_187500)
+    clickaxisenabled(%11_00_00)
+    clicktime(127_000)
+    doubleclickwindow(637_500)
+    clicklatency(150_000)
+    clickintenabled(TRUE)
 
 PUB AccelADCRes(bits): curr_res | tmp1, tmp2
 ' Set accelerometer ADC resolution, in bits
@@ -298,7 +312,7 @@ PUB CalibrateMag{} | tmpx, tmpy, tmpz, tmpbias[3], axis, samples, orig_state
     orig_state.byte[1] := magscale(-2)
     orig_state.byte[2] := magdatarate(-2)
 
-    magopmode(MAG_CONT)                         ' set to continuous, 1.3Gs,
+    magopmode(CONT)                         ' set to continuous, 1.3Gs,
     magscale(1_3)                               '   75Hz
     magdatarate(75)
 
@@ -690,11 +704,11 @@ PUB MagLowPower(enabled): curr_setting
 PUB MagOpMode(mode): curr_mode
 ' Set magnetometer operating mode
 '   Valid values:
-'       MAG_CONT (0): Continuous conversion
-'       MAG_SINGLE (1): Single conversion
-'       MAG_SLEEP (2, 3): Power down
+'       CONT (0): Continuous conversion
+'       SINGLE (1): Single conversion
+'       SLEEP (2, 3): Power down
     case mode
-        MAG_CONT, MAG_SINGLE, MAG_SLEEP, 3:
+        CONT, SINGLE, SLEEP, 3:
             mode &= core#MR_REG_M_MASK
             writereg(core#MR_REG_M, 1, @mode)
         other:
