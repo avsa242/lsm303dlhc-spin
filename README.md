@@ -30,14 +30,14 @@ P2/SPIN2:
 ## Compiler Compatibility
 
 * P1/SPIN1: OpenSpin (tested with 1.00.81)
-* P2/SPIN2: FastSpin (tested with 4.2.6)
+* P2/SPIN2: FlexSpin (tested with 5.0.6-beta)
 * ~~BST~~ (incompatible - no preprocessor)
 * ~~Propeller Tool~~ (incompatible - no preprocessor)
 * ~~PNut~~ (incompatible - no preprocessor)
 
 ## Limitations
 
-* Very early in development - may malfunction, or outright fail to build
+* No support for DRDY or interrupt pins
 
 ## TODO
 
