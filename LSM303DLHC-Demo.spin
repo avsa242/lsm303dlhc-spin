@@ -3,9 +3,9 @@
     Filename: LSM303DLHC-Demo.spin
     Author: Jesse Burt
     Description: Demo of the LSM303DLHC driver
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Jul 30, 2020
-    Updated Sep 8, 2020
+    Updated Jan 27, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,8 +20,8 @@ CON
     SER_TX      = 30
     SER_BAUD    = 115_200
 
-    SCL_PIN     = 1
-    SDA_PIN     = 2
+    SCL_PIN     = 4
+    SDA_PIN     = 3
     I2C_HZ      = 400_000
 ' --
 
