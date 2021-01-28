@@ -72,7 +72,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom I/O pins and I2C bus frequency
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
 }   I2C_HZ =< core#I2C_MAX_FREQ                 ' validate pins and bus freq
-        if status := i2c.setupx(SCL_PIN, SDA_PIN, I2C_HZ)
+        if status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ)
             time.usleep(core#TPOR)              ' wait for device startup
             if i2c.present(XL_SLAVE_WR)         ' test device bus presence
                 return status
@@ -83,7 +83,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 
 PUB Stop{}
 ' Put any other housekeeping code here required/recommended by your device before shutting down
-    i2c.terminate{}
+    i2c.deinit{}
 
 PUB Defaults{}
 ' Set factory defaults
@@ -759,10 +759,10 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
     cmd_pkt.byte[0] := reg_nr.byte[1]           ' slave address embedded in
     cmd_pkt.byte[1] := reg_nr & $FF             '   the upper byte of reg_nr
     i2c.start{}
-    i2c.wr_block(@cmd_pkt, 2)
+    i2c.wrblock_lsbf(@cmd_pkt, 2)
     i2c.start{}
     i2c.write(reg_nr.byte[1] | 1)
-    i2c.rd_block(ptr_buff, nr_bytes, TRUE)
+    i2c.rdblock_lsbf(ptr_buff, nr_bytes, TRUE)
     i2c.stop{}
 
 PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
@@ -776,9 +776,8 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
     cmd_pkt.byte[0] := reg_nr.byte[1]
     cmd_pkt.byte[1] := reg_nr & $FF
     i2c.start{}
-    i2c.wr_block(@cmd_pkt, 2)
-    repeat tmp from 0 to nr_bytes-1
-        i2c.write(byte[ptr_buff][tmp])
+    i2c.wrblock_lsbf(@cmd_pkt, 2)
+    i2c.wrblock_lsbf(ptr_buff, nr_bytes)
     i2c.stop{}
 
 
