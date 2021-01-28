@@ -185,7 +185,7 @@ PUB Setup{}
     ser.clear{}
     ser.str(string("Serial terminal started", ser#CR, ser#LF))
     if imu.startx(SCL_PIN, SDA_PIN, I2C_HZ)
-        imu.defaults{}
+        imu.preset_active
         ser.str(string("LSM303DLHC driver started (I2C)", ser#CR, ser#LF))
     else
         ser.str(string("LSM303DLHC driver failed to start - halting", ser#CR, ser#LF))

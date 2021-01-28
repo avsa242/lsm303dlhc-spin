@@ -187,8 +187,8 @@ CON
     SR_REG_M            = $3C09
         LOCK            = 1
         DRDY            = 0
-        LOCK_BITS       = %1
-        DRDY_BITS       = %1
+        LOCK_BITS       = 1
+        DRDY_BITS       = 1
 
     IRA_REG_M           = $3C0A
     IRB_REG_M           = $3C0B
