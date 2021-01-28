@@ -38,6 +38,7 @@ P2/SPIN2:
 ## Limitations
 
 * No support for DRDY or interrupt pins
+* Hard-iron calibration non-functional
 
 ## TODO
 
@@ -46,4 +47,4 @@ P2/SPIN2:
 - [x] Add interrupt support
 - [x] Add click detection demo
 - [x] Port to P2/SPIN2
-
+- [ ] Fix Mag hard-iron calibration
