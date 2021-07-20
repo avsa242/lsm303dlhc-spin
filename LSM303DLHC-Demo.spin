@@ -5,7 +5,7 @@
     Description: Demo of the LSM303DLHC driver
     Copyright (c) 2021
     Started Jul 30, 2020
-    Updated Jan 28, 2021
+    Updated Jul 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,8 +18,8 @@ CON
     LED         = cfg#LED1
     SER_BAUD    = 115_200
 
-    SCL_PIN     = 4
-    SDA_PIN     = 3
+    SCL_PIN     = 28
+    SDA_PIN     = 29
     I2C_HZ      = 400_000                       ' max is 400_000
 ' --
 
