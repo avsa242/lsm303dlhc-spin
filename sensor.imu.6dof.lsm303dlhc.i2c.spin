@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM303DLHC 6DoF IMU
     Copyright (c) 2021
     Started Jul 29, 2020
-    Updated Jan 28, 2021
+    Updated Sep 22, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,6 +21,9 @@ CON
     DEF_SDA         = 29
     DEF_HZ          = 100_000
     I2C_MAX_FREQ    = core#I2C_MAX_FREQ
+
+    LSBF            = 0
+    MSBF            = 1
 
 ' Indicate to user apps how many Degrees of Freedom each sub-sensor has
 '   (also imply whether or not it has a particular sensor)
@@ -303,6 +306,9 @@ PUB CalibrateAccel{} | tmpx, tmpy, tmpz, tmpbias[3], axis, nr_samples, orig_stat
     accelscale(orig_state.byte[1])
     acceldatarate(orig_state.word[1])
 
+PUB CalibrateGyro{}
+' dummy method
+
 PUB CalibrateMag{} | tmpx, tmpy, tmpz, tmpbias[3], axis, samples, orig_state
 ' Calibrate the magnetometer
     longfill(@tmpx, 0, 9)                       ' Initialize vars to 0
@@ -328,6 +334,9 @@ PUB CalibrateMag{} | tmpx, tmpy, tmpz, tmpbias[3], axis, samples, orig_state
     magopmode(orig_state.byte[0])               ' restore user settings
     magscale(orig_state.byte[1])
     magdatarate(orig_state.byte[2])
+
+PUB CalibrateXLG{}
+' dummy method
 
 PUB ClickAxisEnabled(mask): curr_mask
 ' Enable click detection per axis, and per click type
@@ -546,6 +555,30 @@ PUB FIFOUnreadSamples{}: nr_samples
     readreg(core#FIFO_SRC_REG, 1, @nr_samples)
     return ((nr_samples & core#FSS_BITS) + 1)
 
+PUB GyroAxisEnabled(mask)
+' dummy method
+
+PUB GyroBias(x, y, z, rw)
+' dummy method
+
+PUB GyroDataRate(rate)
+' dummy method
+
+PUB GyroData(x, y, z)
+' dummy method
+
+PUB GyroDataOverrun{}
+' dummy method
+
+PUB GyroDataReady{}
+' dummy method
+
+PUB GyroDPS(x, y, z)
+' dummy method
+
+PUB GyroScale(scale)
+' dummy method
+
 PUB Interrupt{}: curr_state
 ' Read interrupt state
 '   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
@@ -636,9 +669,9 @@ PUB MagBias(mxbias, mybias, mzbias, rw)
 PUB MagData(mx, my, mz) | tmp[2]
 ' Read the Magnetometer output registers
     readreg(core#OUT_X_H_M, 6, @tmp)
-    long[mx] := ~~tmp.word[X_AXIS] - _mbiasraw
-    long[my] := ~~tmp.word[Y_AXIS] - _mbiasraw
-    long[mz] := ~~tmp.word[Z_AXIS] - _mbiasraw
+    long[mx] := ~~tmp.word[0] - _mbiasraw[X_AXIS]
+    long[my] := ~~tmp.word[2] - _mbiasraw[Y_AXIS]
+    long[mz] := ~~tmp.word[1] - _mbiasraw[Z_AXIS]
 
 PUB MagDataOverrun{}: flag
 ' Flag indicating magnetometer data has overrun
@@ -670,7 +703,7 @@ PUB MagEndian(endianness): curr_order
 ' Choose byte order of magnetometer data
 ' Dummy method
 
-PUB MagGauss(mx, my, mz) | tmp[3]
+PUB MagGauss(mx, my, mz) | tmp[MAG_DOF]
 ' Read the Magnetometer output registers and scale the outputs to micro-Gauss (1_000_000 = 1.000000 Gs)
     magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
     long[mx] := ((tmp[X_AXIS] * 1_000) / _mres_xy) * 1_000
@@ -733,8 +766,6 @@ PUB MagScale(scale): curr_scl
     case(scale)
         1_3, 1_9, 2_5, 4_0, 4_7, 5_6, 8_1:
             scale := lookdown(scale: 1_3, 1_9, 2_5, 4_0, 4_7, 5_6, 8_1)
-'            _mres := lookup(scale: 0_000140, 0_000290, 0_000430, 0_000580)
-'            _mres := 160
             _mres_xy := lookup(scale: 1100, 855, 670, 450, 400, 330, 230)
             _mres_z := lookup(scale: 980, 760, 600, 400, 355, 295, 205)
             scale <<= core#GN
@@ -754,23 +785,29 @@ PUB MagSoftreset{}
 PUB Reset{}
 ' Reset the device
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, byte_ord
 ' Read nr_bytes from slave device into ptr_buff
     case reg_nr                                 ' validate reg #
         $3220..$3227, $322E..$323D:             ' Accel regs
+            byte_ord := LSBF
         $3228..$322D:                           ' Accel/Mag data output regs
             reg_nr |= core#RD_MULTI
+            byte_ord := LSBF
         $3C00..$3C0C, $3C31, $3C32:             ' Mag regs
+            byte_ord := MSBF
         other:
             return
 
     cmd_pkt.byte[0] := reg_nr.byte[1]           ' slave address embedded in
-    cmd_pkt.byte[1] := reg_nr & $FF             '   the upper byte of reg_nr
+    cmd_pkt.byte[1] := reg_nr.byte[0]           '   the upper byte of reg_nr
     i2c.start{}
     i2c.wrblock_lsbf(@cmd_pkt, 2)
     i2c.start{}
     i2c.write(reg_nr.byte[1] | 1)
-    i2c.rdblock_lsbf(ptr_buff, nr_bytes, TRUE)
+    if (byte_ord == LSBF)                       ' accelerometer data is LSBf
+        i2c.rdblock_lsbf(ptr_buff, nr_bytes, TRUE)
+    elseif (byte_ord == MSBF)                   ' mag is MSBf
+        i2c.rdblock_msbf(ptr_buff, nr_bytes, TRUE)
     i2c.stop{}
 
 PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
@@ -782,7 +819,7 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
             return
 
     cmd_pkt.byte[0] := reg_nr.byte[1]
-    cmd_pkt.byte[1] := reg_nr & $FF
+    cmd_pkt.byte[1] := reg_nr.byte[0]
     i2c.start{}
     i2c.wrblock_lsbf(@cmd_pkt, 2)
     i2c.wrblock_lsbf(ptr_buff, nr_bytes)

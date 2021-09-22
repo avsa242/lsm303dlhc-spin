@@ -69,11 +69,11 @@ PUB MagCalc{} | mx, my, mz
     imu.maggauss(@mx, @my, @mz)
     ser.str(string("Mag (gauss):"))
     ser.positionx(DAT_X_COL)
-    decimal(mx, 1000)
+    decimal(mx, 1000000)
     ser.positionx(DAT_Y_COL)
-    decimal(my, 1000)
+    decimal(my, 1000000)
     ser.positionx(DAT_Z_COL)
-    decimal(mz, 1000)
+    decimal(mz, 1000000)
     ser.clearline{}
     ser.newline{}
 
