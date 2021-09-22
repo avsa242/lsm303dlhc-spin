@@ -56,7 +56,7 @@ CON
 
 VAR
 
-    long _abiasraw[3], _mbiasraw[3], _ares, _mres_xy, _mres_z
+    long _abiasraw[ACCEL_DOF], _mbiasraw[MAG_DOF], _ares, _mres_xy, _mres_z
 
 OBJ
 
@@ -75,7 +75,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom I/O pins and I2C bus frequency
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
 }   I2C_HZ =< core#I2C_MAX_FREQ                 ' validate pins and bus freq
-        if status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ)
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             time.usleep(core#TPOR)              ' wait for device startup
             if i2c.present(XL_SLAVE_WR)         ' test device bus presence
                 return status
