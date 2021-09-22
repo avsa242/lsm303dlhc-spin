@@ -33,6 +33,14 @@ CON
     BARO_DOF        = 0
     DOF             = ACCEL_DOF + GYRO_DOF + MAG_DOF + BARO_DOF
 
+' Scales and data rates used during calibration/bias/offset process
+    CAL_XL_SCL      = 2
+    CAL_G_SCL       = 0
+    CAL_M_SCL       = 1_3
+    CAL_XL_DR       = 100
+    CAL_G_DR        = 0
+    CAL_M_DR        = 75
+
     FP_SCALE        = 1_000_000
 
     R               = 0
@@ -265,71 +273,68 @@ PUB AccelScale(scale): curr_scl
     scale := ((curr_scl & core#FS_MASK) | scale)
     writereg(core#CTRL_REG4, 1, @scale)
 
-PUB CalibrateAccel{} | tmpx, tmpy, tmpz, tmpbias[3], axis, nr_samples, orig_state
+PUB CalibrateAccel{} | axis, orig_res, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmpz, samples
 ' Calibrate the accelerometer
 '   NOTE: The accelerometer must be oriented with the package top facing up
-'   for this method to be successful
-    tmpx := tmpy := tmpz := axis := nr_samples := 0
-    longfill(@tmpbias, 0, 3)
-    accelbias(0, 0, 0, W)
-    orig_state.byte[0] := acceladcres(-2)       ' preserve user settings
-    orig_state.byte[1] := accelscale(-2)
-    orig_state.word[1] := acceldatarate(-2)
+'       for this method to be successful
+    longfill(@axis, 0, 11)                      ' initialize vars to 0
+    orig_scl := accelscale(-2)                  ' save user's current settings
+    orig_dr := acceldatarate(-2)
+    accelbias(0, 0, 0, W)                       ' clear existing bias
 
-    acceladcres(12)                             ' set to 12bit, 2g FS, 100Hz
-    accelscale(2)
-    acceldatarate(100)
+    ' set sensor to CAL_XL_SCL range, CAL_XL_DR Hz data rate
+    accelscale(CAL_XL_SCL)
+    acceldatarate(CAL_XL_DR)
+    samples := CAL_XL_DR                        ' samples = DR, for 1 sec time
 
-    fifoenabled(TRUE)                           ' use FIFO for data collection
-    fifomode(FIFO)
-    fifothreshold(32)
-    nr_samples := fifothreshold(-2)             ' read back to confirm, and use
-    repeat until fifofull{}                     '   as sample count
+    ' accumulate and average approx. 1sec worth of samples
+    repeat samples
+        repeat until acceldataready{}
+        acceldata(@tmpx, @tmpy, @tmpz)
+        tmp[X_AXIS] += tmpx
+        tmp[Y_AXIS] += tmpy
+        tmp[Z_AXIS] += (tmpz-(1_000_000 / _ares))' cancel out 1g on Z-axis
 
-    repeat nr_samples
-        acceldata(@tmpx, @tmpy, @tmpz)          ' read FIFO data
-        tmpbias[X_AXIS] += tmpx                 ' accumulate samples for
-        tmpbias[Y_AXIS] += tmpy                 '   each axis
-        tmpbias[Z_AXIS] += tmpz + (1024000/_ares)
+    repeat axis from X_AXIS to Z_AXIS           ' calc avg
+        tmp[axis] /= samples
 
-    accelbias(tmpbias[X_AXIS] / nr_samples, tmpbias[Y_AXIS] / nr_samples,{
-}   tmpbias[Z_AXIS] / nr_samples, W)            ' average samples and set bias
+    ' update offsets
+    accelbias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
 
-    fifoenabled(FALSE)                          ' turn off the FIFO
-    fifomode(BYPASS)
-
-    acceladcres(orig_state.byte[0])             ' restore user settings
-    accelscale(orig_state.byte[1])
-    acceldatarate(orig_state.word[1])
+    accelscale(orig_scl)                        ' restore user's settings
+    acceldatarate(orig_dr)
 
 PUB CalibrateGyro{}
 ' dummy method
 
-PUB CalibrateMag{} | tmpx, tmpy, tmpz, tmpbias[3], axis, samples, orig_state
+PUB CalibrateMag{} | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[MAG_DOF], samples
 ' Calibrate the magnetometer
-    longfill(@tmpx, 0, 9)                       ' Initialize vars to 0
-    samples := 32
-    magbias(0, 0, 0, W)
-    orig_state.byte[0] := magopmode(-2)         ' preserve user settings
-    orig_state.byte[1] := magscale(-2)
-    orig_state.byte[2] := magdatarate(-2)
+    longfill(@axis, 0, 10)                      ' initialize vars to 0
+    orig_scl := magscale(-2)                    ' save user's current settings
+    orig_dr := magdatarate(-2)
+    magbias(0, 0, 0, W)                         ' clear existing bias
 
-    magopmode(CONT)                         ' set to continuous, 1.3Gs,
-    magscale(1_3)                               '   75Hz
-    magdatarate(75)
+    ' set sensor to CAL_M_SCL range, CAL_M_DR Hz data rate
+    magscale(CAL_M_SCL)
+    magdatarate(CAL_M_DR)
+    samples := CAL_M_DR                         ' samples = DR, for 1 sec time
 
+    ' accumulate and average approx. 1sec worth of samples
     repeat samples
-        magdata(@tmpx, @tmpy, @tmpz)            ' read mag data
-        tmpbias[X_AXIS] += tmpx                 ' accumulate samples for
-        tmpbias[Y_AXIS] += tmpy                 '   each axis
-        tmpbias[Z_AXIS] += tmpz
+        repeat until magdataready{}
+        magdata(@tmpx, @tmpy, @tmpz)
+        tmp[X_AXIS] += tmpx
+        tmp[Y_AXIS] += tmpy
+        tmp[Z_AXIS] += tmpz
 
-    magbias(tmpbias[X_AXIS] / samples, tmpbias[Y_AXIS] / samples, {
-}   tmpbias[Z_AXIS]/samples, W)                 ' average samples and set bias
+    repeat axis from X_AXIS to Z_AXIS           ' calc avg
+        tmp[axis] /= samples
 
-    magopmode(orig_state.byte[0])               ' restore user settings
-    magscale(orig_state.byte[1])
-    magdatarate(orig_state.byte[2])
+    ' update offsets
+    magbias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
+
+    magscale(orig_scl)                          ' restore user's settings
+    magdatarate(orig_dr)
 
 PUB CalibrateXLG{}
 ' dummy method
