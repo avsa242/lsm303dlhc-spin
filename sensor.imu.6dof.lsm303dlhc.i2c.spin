@@ -193,20 +193,16 @@ PUB AccelBias(axbias, aybias, azbias, rw)
                     _abiasraw[Z_AXIS] := azbias
                 other:
 
-PUB AccelData(ax, ay, az) | raw[2], tmp[3]
+PUB AccelData(ax, ay, az) | tmp[2]
 ' Reads the Accelerometer output registers
-    longfill(@raw, 0, 5)
-    readreg(core#OUT_X_L, 6, @raw)
+    longfill(@tmp, 0, 2)
+    readreg(core#OUT_X_L, 6, @tmp)
 
     ' accel data is 12bit, left-justified in a 16bit word
-    ' align left with MSB of long, then SAR enough to chop the 4 LSBs off
-    tmp[X_AXIS] := (raw.word[X_AXIS] << 16) ~> 20
-    tmp[Y_AXIS] := (raw.word[Y_AXIS] << 16) ~> 20
-    tmp[Z_AXIS] := (raw.word[Z_AXIS] << 16) ~> 20
-
-    long[ax] := ~~tmp[X_AXIS] - _abiasraw[X_AXIS]
-    long[ay] := ~~tmp[Y_AXIS] - _abiasraw[Y_AXIS]
-    long[az] := ~~tmp[Z_AXIS] - _abiasraw[Z_AXIS]
+    '   extend sign, then right-justify
+    long[ax] := (~~tmp.word[X_AXIS] ~> 4) - _abiasraw[X_AXIS]
+    long[ay] := (~~tmp.word[Y_AXIS] ~> 4) - _abiasraw[Y_AXIS]
+    long[az] := (~~tmp.word[Z_AXIS] ~> 4) - _abiasraw[Z_AXIS]
 
 PUB AccelDataOverrun{}: flag
 ' Flag indicating previously acquired data has been overwritten
