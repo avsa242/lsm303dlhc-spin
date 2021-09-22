@@ -169,7 +169,7 @@ PUB AccelAxisEnabled(mask): curr_mask
             ' ZYX (XYZ order is sensor.imu standard)
             mask := (mask >< 3) & core#XYZEN_BITS
         other:
-            return (curr_mask & core#XYZEN_BITS)
+            return ((curr_mask & core#XYZEN_BITS) >< 3)
 
     mask := ((curr_mask & core#XYZEN_MASK) | mask)
     writereg(core#CTRL_REG1, 1, @mask)
