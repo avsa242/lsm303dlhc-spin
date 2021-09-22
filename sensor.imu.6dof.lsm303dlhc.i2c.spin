@@ -223,7 +223,7 @@ PUB AccelDataOverrun{}: flag
 '       Returns 0 otherwise
     flag := 0
     readreg(core#STATUS_REG, 1, @flag)
-    return ((flag >> core#X_OR) & core#DA_BITS)
+    return ((flag >> core#X_OR) & core#OR_BITS)
 
 PUB AccelDataReady{}: flag
 ' Flag indicating accelerometer data is ready
@@ -359,7 +359,7 @@ PUB Clicked{}: flag
 ' Flag indicating the sensor was single or double-clicked
 '   Returns: TRUE (-1) if sensor was single-clicked or double-clicked
 '            FALSE (0) otherwise
-    return (((clickedint >> core#SCLICK) & %11) <> 0)
+    return (((clickedint >> core#SCLICK) & core#CLICK_BITS) <> 0)
 
 PUB ClickedInt{}: int_src
 ' Clicked interrupt status
@@ -404,7 +404,7 @@ PUB ClickLatency(ltime): curr_ltime | time_res
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Minimum unit is dependent on the current output data rate (AccelDataRate)
 '   NOTE: ST application note example uses AccelDataRate(400)
-    time_res := 1_000000 / acceldatarate(-2)                ' Resolution is (1 / AccelDataRate)
+    time_res := 1_000000 / acceldatarate(-2)    ' Resolution is (1 / AccelDataRate)
     case ltime
         0..(time_res * 255):
             ltime := (ltime / time_res)
@@ -423,7 +423,7 @@ PUB ClickThresh(thresh): curr_thr | ares
 '       8           7_937500 (= 7.937500g)
 '       16         15_875000 (= 15.875000g)
 '   NOTE: Each LSB = (AccelScale/128)*1M (e.g., 4g scale lsb=31250ug = 0_031250ug = 0.03125g)
-    ares := (accelscale(-2) * 1_000000) / 128               ' Resolution is current scale / 128
+    ares := (accelscale(-2) * 1_000000) / 128   ' Resolution is current scale / 128
     case thresh
         0..(127*ares):
             thresh := (thresh / ares)
@@ -450,7 +450,7 @@ PUB ClickTime(ctime): curr_ctime | time_res
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Minimum unit is dependent on the current output data rate (AccelDataRate)
 '   NOTE: ST application note example uses AccelDataRate(400)
-    time_res := 1_000000 / acceldatarate(-2)                ' Resolution is (1 / AccelDataRate)
+    time_res := 1_000000 / acceldatarate(-2)    ' Resolution is (1 / AccelDataRate)
     case ctime
         0..(time_res * 127):
             ctime := (ctime / time_res)
@@ -479,7 +479,7 @@ PUB DoubleClickWindow(dctime): curr_dctime | time_res
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Minimum unit is dependent on the current output data rate (AccelDataRate)
 '   NOTE: ST application note example uses AccelDataRate(400)
-    time_res := 1_000000 / acceldatarate(-2)                ' Resolution is (1 / AccelDataRate)
+    time_res := 1_000000 / acceldatarate(-2)    ' Resolution is (1 / AccelDataRate)
     case dctime
         0..(time_res * 255):
             dctime := (dctime / time_res)
@@ -615,24 +615,24 @@ PUB IntThresh(thresh): curr_lvl
 ' Set interrupt threshold level, in micro-g's
 '   Valid values: 0..16_000000
     case thresh
-        0..16_000000:                                       ' 0..16_000000 = 0..16M micro-g's = 0..16 g's
+        0..16_000000:                           ' 0..16M micro-g's = 0..16 g's
         other:
             curr_lvl := 0
             readreg(core#INT1_THS, 1, @curr_lvl)
-            case accelscale(-2)                             '
-                2: curr_lvl *= 16_000                       '
-                4: curr_lvl *= 32_000                       '
-                8: curr_lvl *= 62_000                       '
-                16: curr_lvl *= 186_000                     ' Scale threshold register's 7-bit range
-            return                                          '   to micro-g's
+            case accelscale(-2)
+                2: curr_lvl *= 16_000
+                4: curr_lvl *= 32_000
+                8: curr_lvl *= 62_000
+                16: curr_lvl *= 186_000         ' Scale threshold reg's 7-bit
+            return                              '   range to micro-g's
 
-    case accelscale(-2)                                     '
-        2: curr_lvl := 16_000                               '
-        4: curr_lvl := 32_000                               '
-        8: curr_lvl := 62_000                               '
-        16: curr_lvl := 186_000                             ' Scale micro-g's to threshold register's
-
-    thresh /= curr_lvl                                       '   7-bit range
+    case accelscale(-2)
+        2: curr_lvl := 16_000
+        4: curr_lvl := 32_000
+        8: curr_lvl := 62_000
+        16: curr_lvl := 186_000                 ' Scale micro-g's to threshold
+                                                '   reg 7-bit range
+    thresh /= curr_lvl
     writereg(core#INT1_THS, 1, @thresh)
 
 PUB MagBias(mxbias, mybias, mzbias, rw)
@@ -642,9 +642,8 @@ PUB MagBias(mxbias, mybias, mzbias, rw)
 '           R (0), W (1)
 '       mxbias, mybias, mzbias:
 '           -2048..2047
-'   NOTE: When rw is set to READ, mxbias, mybias and mzbias must be addresses of respective variables to hold the returned
-'       calibration offset values.
-
+'   NOTE: When rw is set to READ, mxbias, mybias and mzbias must be pointers
+'       to respective variables to hold the returned offset values.
     case rw
         R:
             long[mxbias] := _mbiasraw[X_AXIS]
