@@ -3,9 +3,9 @@
     Filename: sensor.imu.6dof.lsm303dlhc.i2c.spin
     Author: Jesse Burt
     Description: Driver for the ST LSM303DLHC 6DoF IMU
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jul 29, 2020
-    Updated Sep 22, 2021
+    Updated Jan 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -109,7 +109,7 @@ PUB Preset_Active{}
     acceldatarate(50)
     accelscale(2)
     magopmode(CONT)
-    magscale(1_3)
+    magscale(1)
 
 PUB Preset_ClickDet{}
 ' Presets for click-detection
@@ -668,6 +668,7 @@ PUB MagBias(mxbias, mybias, mzbias, rw)
 
 PUB MagData(mx, my, mz) | tmp[2]
 ' Read the Magnetometer output registers
+    longfill(@mp, 0, 2)
     readreg(core#OUT_X_H_M, 6, @tmp)
     long[mx] := ~~tmp.word[0] - _mbiasraw[X_AXIS]
     long[my] := ~~tmp.word[2] - _mbiasraw[Y_AXIS]
@@ -705,10 +706,11 @@ PUB MagEndian(endianness): curr_order
 
 PUB MagGauss(mx, my, mz) | tmp[MAG_DOF]
 ' Read the Magnetometer output registers and scale the outputs to micro-Gauss (1_000_000 = 1.000000 Gs)
+    longfill(@tmp, 0, MAG_DOF)
     magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[mx] := ((tmp[X_AXIS] * 1_000) / _mres_xy) * 1_000
-    long[my] := ((tmp[Y_AXIS] * 1_000) / _mres_xy) * 1_000
-    long[mz] := ((tmp[Z_AXIS] * 1_000) / _mres_z) * 1_000
+    long[mx] := tmp[X_AXIS] * _mres_xy
+    long[my] := tmp[Y_AXIS] * _mres_xy
+    long[mz] := tmp[Z_AXIS] * _mres_z
 
 PUB MagInt{}: intsrc
 ' Magnetometer interrupt source(s)
@@ -759,20 +761,22 @@ PUB MagPerf(mode): curr_mode
 
 PUB MagScale(scale): curr_scl
 ' Set full scale of Magnetometer, in Gauss
-'   Valid values: *1_3 (1.3), 1_9, 2_5, 4_0, 4_7, 5_6, 8_1
+'   Valid values: *1 (1.3), 2 (1.9), 3 (2.5), 4, 5 (4.7), 6 (5.6), 8 (8.1)
 '   Any other value polls the chip and returns the current setting
-    curr_scl := 0
-    readreg(core#CRB_REG_M, 1, @curr_scl)
-    case(scale)
-        1_3, 1_9, 2_5, 4_0, 4_7, 5_6, 8_1:
-            scale := lookdown(scale: 1_3, 1_9, 2_5, 4_0, 4_7, 5_6, 8_1)
-            _mres_xy := lookup(scale: 1100, 855, 670, 450, 400, 330, 230)
-            _mres_z := lookup(scale: 980, 760, 600, 400, 355, 295, 205)
+    case scale
+        1, 2, 3, 4, 5, 6, 8:
+            scale := lookdown(scale: 1, 2, 3, 4, 5, 6, 8)
+            _mres_xy := lookup(scale: 0_000909, 0_001169, 0_001492, 0_002222, {
+}           0_002500, 0_003030, 0_004347)
+            _mres_z := lookup(scale: 0_001020, 0_001315, 0_001666, 0_002500, {
+}           0_002816, 0_003389, 0_004878)
             scale <<= core#GN
             writereg(core#CRB_REG_M, 1, @scale)
         other:
+            curr_scl := 0
+            readreg(core#CRB_REG_M, 1, @curr_scl)
             curr_scl := (curr_scl >> core#GN) & core#GN_BITS
-            return lookup(curr_scl: 1_3, 1_9, 2_5, 4_0, 4_7, 5_6, 8_1)
+            return lookup(curr_scl: 1, 2, 3, 4, 5, 6, 8)
 
 PUB MagSelfTest(enabled): curr_setting
 ' Enable on-chip magnetometer self-test
@@ -788,12 +792,12 @@ PUB Reset{}
 PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, byte_ord
 ' Read nr_bytes from slave device into ptr_buff
     case reg_nr                                 ' validate reg #
-        $3220..$3227, $322E..$323D:             ' Accel regs
+        $32_20..$32_27, $32_2E..$32_3D:         ' Accel regs
             byte_ord := LSBF
-        $3228..$322D:                           ' Accel/Mag data output regs
+        $32_28..$32_2D:                         ' Accel data output regs
             reg_nr |= core#RD_MULTI
             byte_ord := LSBF
-        $3C00..$3C0C, $3C31, $3C32:             ' Mag regs
+        $3C_00..$3C_0C, $3C_31, $3C_32:         ' Mag regs
             byte_ord := MSBF
         other:
             return
@@ -813,8 +817,8 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, byte_ord
 PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' Write nr_bytes from ptr_buff to slave device
     case reg_nr                                 ' validate reg #
-        $3220..$3226, $322E, $3230, $3232..$3234, $3236..$323D:
-        $3C00..$3C02:
+        $32_20..$32_26, $32_2E, $32_30, $32_32..$32_34, $32_36..$32_3D:
+        $3C_00..$3C_02:
         other:
             return
 
