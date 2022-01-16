@@ -668,7 +668,7 @@ PUB MagBias(mxbias, mybias, mzbias, rw)
 
 PUB MagData(mx, my, mz) | tmp[2]
 ' Read the Magnetometer output registers
-    longfill(@mp, 0, 2)
+    longfill(@tmp, 0, 2)
     readreg(core#OUT_X_H_M, 6, @tmp)
     long[mx] := ~~tmp.word[0] - _mbiasraw[X_AXIS]
     long[my] := ~~tmp.word[2] - _mbiasraw[Y_AXIS]
@@ -698,7 +698,7 @@ PUB MagDataReady{}: flag
 '   Flag indicating new magnetometer data available
 '       Returns: TRUE(-1) if data available, FALSE otherwise
     readreg(core#SR_REG_M, 1, @flag)
-    return ((flag & core#DRDY_BITS) == 1)
+    return ((flag & core#DRDY_BITS) == 0)
 
 PUB MagEndian(endianness): curr_order
 ' Choose byte order of magnetometer data

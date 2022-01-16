@@ -693,7 +693,7 @@ PUB MagDataReady(): flag
 '   Flag indicating new magnetometer data available
 '       Returns: TRUE(-1) if data available, FALSE otherwise
     readreg(core.SR_REG_M, 1, @flag)
-    return ((flag & core.DRDY_BITS) == 1)
+    return ((flag & core.DRDY_BITS) == 0)
 
 PUB MagEndian(endianness): curr_order
 ' Choose byte order of magnetometer data
