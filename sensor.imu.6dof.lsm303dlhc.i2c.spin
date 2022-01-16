@@ -255,6 +255,61 @@ PUB AccelG(ptr_x, ptr_y, ptr_z) | tmpx, tmpy, tmpz
     long[ptr_y] := tmpy * _ares
     long[ptr_z] := tmpz * _ares
 
+PUB AccelInt{}: curr_state
+' Read accelerometer interrupt state
+'   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
+'       6: One or more interrupts have been generated
+'       5: Z-axis high event
+'       4: Z-axis low event
+'       3: Y-axis high event
+'       2: Y-axis low event
+'       1: X-axis high event
+'       0: X-axis low event
+    readreg(core#INT1_SRC, 1, @curr_state)
+
+PUB AccelIntMask(mask): curr_mask
+' Set accelerometer interrupt mask
+'   Bits:   543210
+'       5: Z-axis high event
+'       4: Z-axis low event
+'       3: Y-axis high event
+'       2: Y-axis low event
+'       1: X-axis high event
+'       0: X-axis low event
+'   Valid values: %000000..%111111
+'   Any other value polls the chip and returns the current setting
+    case mask
+        %000000..%111111:
+            writereg(core#INT1_CFG, 1, @mask)
+        other:
+            curr_mask := 0
+            readreg(core#INT1_CFG, 1, @curr_mask)
+            return
+
+PUB AccelIntThresh(thresh): curr_lvl
+' Set accelerometer interrupt threshold level, in micro-g's
+'   Valid values: 0..16_000000
+    case thresh
+        0..16_000000:                           ' 0..16M micro-g's = 0..16 g's
+        other:
+            curr_lvl := 0
+            readreg(core#INT1_THS, 1, @curr_lvl)
+            case accelscale(-2)
+                2: curr_lvl *= 16_000
+                4: curr_lvl *= 32_000
+                8: curr_lvl *= 62_000
+                16: curr_lvl *= 186_000         ' Scale threshold reg's 7-bit
+            return                              '   range to micro-g's
+
+    case accelscale(-2)
+        2: curr_lvl := 16_000
+        4: curr_lvl := 32_000
+        8: curr_lvl := 62_000
+        16: curr_lvl := 186_000                 ' Scale micro-g's to threshold
+                                                '   reg 7-bit range
+    thresh /= curr_lvl
+    writereg(core#INT1_THS, 1, @thresh)
+
 PUB AccelScale(scale): curr_scl
 ' Set measurement range of the accelerometer, in g's
 '   Valid values: 2, 4, 8, 16
@@ -579,61 +634,6 @@ PUB GyroDPS(x, y, z)
 
 PUB GyroScale(scale)
 ' dummy method
-
-PUB Interrupt{}: curr_state
-' Read interrupt state
-'   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
-'       6: One or more interrupts have been generated
-'       5: Z-axis high event
-'       4: Z-axis low event
-'       3: Y-axis high event
-'       2: Y-axis low event
-'       1: X-axis high event
-'       0: X-axis low event
-    readreg(core#INT1_SRC, 1, @curr_state)
-
-PUB IntMask(mask): curr_mask
-' Set interrupt mask
-'   Bits:   543210
-'       5: Z-axis high event
-'       4: Z-axis low event
-'       3: Y-axis high event
-'       2: Y-axis low event
-'       1: X-axis high event
-'       0: X-axis low event
-'   Valid values: %000000..%111111
-'   Any other value polls the chip and returns the current setting
-    case mask
-        %000000..%111111:
-            writereg(core#INT1_CFG, 1, @mask)
-        other:
-            curr_mask := 0
-            readreg(core#INT1_CFG, 1, @curr_mask)
-            return
-
-PUB IntThresh(thresh): curr_lvl
-' Set interrupt threshold level, in micro-g's
-'   Valid values: 0..16_000000
-    case thresh
-        0..16_000000:                           ' 0..16M micro-g's = 0..16 g's
-        other:
-            curr_lvl := 0
-            readreg(core#INT1_THS, 1, @curr_lvl)
-            case accelscale(-2)
-                2: curr_lvl *= 16_000
-                4: curr_lvl *= 32_000
-                8: curr_lvl *= 62_000
-                16: curr_lvl *= 186_000         ' Scale threshold reg's 7-bit
-            return                              '   range to micro-g's
-
-    case accelscale(-2)
-        2: curr_lvl := 16_000
-        4: curr_lvl := 32_000
-        8: curr_lvl := 62_000
-        16: curr_lvl := 186_000                 ' Scale micro-g's to threshold
-                                                '   reg 7-bit range
-    thresh /= curr_lvl
-    writereg(core#INT1_THS, 1, @thresh)
 
 PUB MagBias(mxbias, mybias, mzbias, rw)
 ' Read or write/manually set Magnetometer calibration offset values
