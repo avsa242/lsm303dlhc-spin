@@ -122,8 +122,6 @@ PUB Setup{}
         ser.strln(string("LSM303DLHC driver started"))
     else
         ser.strln(string("LSM303DLHC driver failed to start - halting"))
-        imu.stop{}
-        time.msleep(5)
         repeat
 
 DAT
