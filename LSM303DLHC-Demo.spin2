@@ -13,14 +13,14 @@
 CON
 
     _clkfreq    = cfg._clkfreq_def
-    _xtlfreq    = cfg._xtlfreq
+'    _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    SCL_PIN     = 0
-    SDA_PIN     = 1
+    SCL_PIN     = 9'0
+    SDA_PIN     = 10'1
     I2C_HZ      = 400_000                       ' max is 400_000
 ' --
 

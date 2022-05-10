@@ -65,7 +65,7 @@ CON
 
 VAR
 
-    long _abiasraw[ACCEL_DOF], _mbiasraw[MAG_DOF], _ares, _mres_xy, _mres_z
+    long _abiasraw[ACCEL_DOF], _mbiasraw[MAG_DOF], _ares, _mres[MAG_DOF]
 
 OBJ
 
@@ -690,9 +690,11 @@ PUB MagScale(scale): curr_scl
     case scale
         1, 2, 3, 4, 5, 6, 8:
             scale := lookdown(scale: 1, 2, 3, 4, 5, 6, 8)
-            _mres_xy := lookup(scale: 0_000909, 0_001169, 0_001492, 0_002222, {
+            _mres[X_AXIS] := lookup(scale: 0_000909, 0_001169, 0_001492, 0_002222, {
 }           0_002500, 0_003030, 0_004347)
-            _mres_z := lookup(scale: 0_001020, 0_001315, 0_001666, 0_002500, {
+            _mres[Y_AXIS] := lookup(scale: 0_000909, 0_001169, 0_001492, 0_002222, {
+}           0_002500, 0_003030, 0_004347)
+            _mres[Z_AXIS] := lookup(scale: 0_001020, 0_001315, 0_001666, 0_002500, {
 }           0_002816, 0_003389, 0_004878)
             scale <<= core#GN
             writereg(core#CRB_REG_M, 1, @scale)
@@ -712,27 +714,27 @@ PUB MagSoftreset{}
 
 PUB MagXWord2Gauss(mag_word): mag_gauss
 ' Convert magnetometer X-axis ADC word to Gauss
-    return (mag_word * _mres_xy)
+    return (mag_word * _mres[X_AXIS])
 
 PUB MagYWord2Gauss(mag_word): mag_gauss
 ' Convert magnetometer Y-axis ADC word to Gauss
-    return (mag_word * _mres_xy)
+    return (mag_word * _mres[Y_AXIS])
 
 PUB MagZWord2Gauss(mag_word): mag_gauss
 ' Convert magnetometer Z-axis ADC word to Gauss
-    return (mag_word * _mres_z)
+    return (mag_word * _mres[Z_AXIS])
 
 PUB MagXWord2Tesla(mag_word): mag_tesla
 ' Convert magnetometer X-axis ADC word to Teslas
-    return (mag_word * _mres_xy) / 10_000
+    return (mag_word * _mres[X_AXIS]) / 10_000
 
 PUB MagYWord2Tesla(mag_word): mag_tesla
 ' Convert magnetometer Y-axis ADC word to Teslas
-    return (mag_word * _mres_xy) / 10_000
+    return (mag_word * _mres[Y_AXIS]) / 10_000
 
 PUB MagZWord2Tesla(mag_word): mag_tesla
 ' Convert magnetometer Z-axis ADC word to Teslas
-    return (mag_word * _mres_z) / 10_000
+    return (mag_word * _mres[Z_AXIS]) / 10_000
 
 PUB Reset{}
 ' Reset the device
