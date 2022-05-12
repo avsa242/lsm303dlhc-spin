@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Aug 1, 2020
-    Updated May 10, 2022
+    Updated May 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -317,10 +317,6 @@ PUB AccelScale(scale=-2): curr_scl
     scale := ((curr_scl & core.FS_MASK) | scale)
     writereg(core.CTRL_REG4, 1, @scale)
 
-PUB AccelWord2G(accel_word): accel_g
-' Convert accelerometer ADC word to g's
-    return (accel_word * _ares)
-
 PUB ClickAxisEnabled(mask=-2): curr_mask
 ' Enable click detection per axis, and per click type
 '   Valid values:
@@ -559,9 +555,6 @@ PUB GyroDataReady()
 PUB GyroScale(scale=-2)
 ' dummy method
 
-PUB GyroWord2DPS(gyro_word): gyro_dps
-' dummy method
-
 PUB MagBias(mxbias, mybias, mzbias, rw=0)
 ' Read or write/manually set Magnetometer calibration offset values
 '   Valid values:
@@ -706,30 +699,6 @@ PUB MagSelfTest(enabled): curr_setting
 PUB MagSoftreset()
 ' Perform soft-test of magnetometer
 ' Dummy method
-
-PUB MagXWord2Gauss(mag_word): mag_gauss
-' Convert magnetometer X-axis ADC word to Gauss
-    return (mag_word * _mres[X_AXIS])
-
-PUB MagYWord2Gauss(mag_word): mag_gauss
-' Convert magnetometer Y-axis ADC word to Gauss
-    return (mag_word * _mres[Y_AXIS])
-
-PUB MagZWord2Gauss(mag_word): mag_gauss
-' Convert magnetometer Z-axis ADC word to Gauss
-    return (mag_word * _mres[Z_AXIS])
-
-PUB MagXWord2Tesla(mag_word): mag_tesla
-' Convert magnetometer X-axis ADC word to Teslas
-    return (mag_word * _mres[X_AXIS]) / 10_000
-
-PUB MagYWord2Tesla(mag_word): mag_tesla
-' Convert magnetometer Y-axis ADC word to Teslas
-    return (mag_word * _mres[Y_AXIS]) / 10_000
-
-PUB MagZWord2Tesla(mag_word): mag_tesla
-' Convert magnetometer Z-axis ADC word to Teslas
-    return (mag_word * _mres[Z_AXIS]) / 10_000
 
 PUB Reset()
 ' Reset the device
