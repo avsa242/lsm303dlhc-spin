@@ -255,6 +255,7 @@ PUB AccelInt{}: curr_state
 '       2: Y-axis low event
 '       1: X-axis high event
 '       0: X-axis low event
+    curr_state := 0
     readreg(core#INT1_SRC, 1, @curr_state)
 
 PUB AccelIntMask(mask): curr_mask
@@ -487,12 +488,14 @@ PUB FIFOEnabled(state): curr_state
 PUB FIFOEmpty{}: flag
 ' Flag indicating FIFO is empty
 '   Returns: FALSE (0): FIFO contains at least one sample, TRUE(-1): FIFO is empty
+    flag := 0
     readreg(core#FIFO_SRC_REG, 1, @flag)
     return (((flag >> core#EMPTY) & 1) == 1)
 
 PUB FIFOFull{}: flag
 ' Flag indicating FIFO is full
 '   Returns: FALSE (0): FIFO contains less than 32 samples, TRUE(-1): FIFO contains 32 samples
+    flag := 0
     readreg(core#FIFO_SRC_REG, 1, @flag)
     return (((flag >> core#OVRN_FIFO) & 1) == 1)
 
@@ -533,6 +536,7 @@ PUB FIFOThreshold(thresh): curr_thr
 PUB FIFOUnreadSamples{}: nr_samples
 ' Number of unread samples stored in FIFO
 '   Returns: 1..32
+    nr_samples := 0
     readreg(core#FIFO_SRC_REG, 1, @nr_samples)
     return ((nr_samples & core#FSS_BITS) + 1)
 
@@ -572,18 +576,15 @@ PUB MagBias(mxbias, mybias, mzbias, rw)
             long[mxbias] := _mbias[X_AXIS]
             long[mybias] := _mbias[Y_AXIS]
             long[mzbias] := _mbias[Z_AXIS]
-
         W:
             case mxbias
                 -2048..2047:
                     _mbias[X_AXIS] := mxbias
                 other:
-
             case mybias
                 -2048..2047:
                     _mbias[Y_AXIS] := mybias
                 other:
-
             case mzbias
                 -2048..2047:
                     _mbias[Z_AXIS] := mzbias
@@ -620,6 +621,7 @@ PUB MagDataRate(rate): curr_rate
 PUB MagDataReady{}: flag
 '   Flag indicating new magnetometer data available
 '       Returns: TRUE(-1) if data available, FALSE otherwise
+    flag := 0
     readreg(core#SR_REG_M, 1, @flag)
     return ((flag & core#DRDY_BITS) == 0)
 
