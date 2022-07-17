@@ -22,7 +22,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the LSM303D
 
 P1/SPIN1:
 * spin-standard-library
-* 1 extra core/cog for the PASM I2C engine
+* 1 extra core/cog for the PASM I2C engine (none if the bytecode-based engine is used)
 * sensor.imu.common.spinh (provided by spin-standard-library)
 
 P2/SPIN2:
@@ -45,5 +45,4 @@ P2/SPIN2:
 ## Limitations
 
 * No support for DRDY or interrupt pins
-* Hard-iron calibration non-functional
 
