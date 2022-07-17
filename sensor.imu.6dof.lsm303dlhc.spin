@@ -550,8 +550,9 @@ PUB GyroData(x, y, z)
 PUB GyroDataOverrun{}
 ' dummy method
 
-PUB GyroDataReady{}
+PUB GyroDataReady{}: flag
 ' dummy method
+    return true
 
 PUB GyroScale(scale)
 ' dummy method
