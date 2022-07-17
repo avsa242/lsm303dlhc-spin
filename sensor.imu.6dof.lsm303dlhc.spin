@@ -350,6 +350,7 @@ PUB ClickedInt{}: int_src
 '       2: Z-axis clicked
 '       1: Y-axis clicked
 '       0: X-axis clicked
+    int_src := 0
     readreg(core#CLICK_SRC, 1, @int_src)
 
 PUB ClickIntEnabled(state): curr_state
