@@ -27,13 +27,6 @@ CON
     SDA_PIN     = 29
     I2C_FREQ    = 400_000
     ADDR_BITS   = 0
-
-    { SPI configuration }
-    CS_AG_PIN   = 0
-    CS_M_PIN    = 1
-    SCK_PIN     = 2
-    MOSI_PIN    = 3                             ' SDA
-    MISO_PIN    = 4                             ' SDOAG + SDOM
 ' --
 
 OBJ
