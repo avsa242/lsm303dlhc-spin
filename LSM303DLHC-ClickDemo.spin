@@ -6,7 +6,7 @@
         click-detection functionality
     Copyright (c) 2022
     Started Aug 1, 2020
-    Updated Oct 2, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,7 +27,7 @@ CON
 
 OBJ
 
-    cfg     : "core.con.boardcfg.flip"
+    cfg     : "boardcfg.flip"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
     accel   : "sensor.imu.6dof.lsm303dlhc"

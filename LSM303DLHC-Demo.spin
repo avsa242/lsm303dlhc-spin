@@ -6,7 +6,7 @@
         * 6DoF data output
     Copyright (c) 2022
     Started Aug 12, 2017
-    Updated Oct 2, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -31,7 +31,7 @@ CON
 
 OBJ
 
-    cfg: "core.con.boardcfg.flip"
+    cfg: "boardcfg.flip"
     sensor: "sensor.imu.6dof.lsm303dlhc"
     ser: "com.serial.terminal.ansi"
     time: "time"
