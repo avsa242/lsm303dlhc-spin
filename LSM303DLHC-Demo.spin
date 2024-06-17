@@ -1,23 +1,24 @@
 {
-    --------------------------------------------
-    Filename: LSM303DLHC-Demo.spin
-    Author: Jesse Burt
-    Description: LSM303DLHC driver demo
+----------------------------------------------------------------------------------------------------
+    Filename:       LSM303DLHC-Demo.spin
+    Description:    LSM303DLHC driver demo
         * 6DoF data output
-    Copyright (c) 2022
-    Started Aug 12, 2017
-    Updated Nov 20, 2022
-    See end of file for terms of use.
-    --------------------------------------------
-
-    Build-time symbols supported by driver:
-        -DLSM303DLHC_I2C (default if none specified)
-        -DLSM303DLHC_I2C_BC
+    Author:         Jesse Burt
+    Started:        Jul 29, 2020
+    Updated:        Jun 17, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
+' Uncomment the two lines below to use the bytecode-based I2C engine
+'#define LSM303DLHC_I2C_BC
+'#exportdef LSM303DLHC_I2C_BC
+
+
 CON
 
-    _clkmode    = cfg#_clkmode
-    _xinfreq    = cfg#_xinfreq
+    _clkmode    = cfg._clkmode
+    _xinfreq    = cfg._xinfreq
 
 ' -- User-modifiable constants
     SER_BAUD    = 115_200
@@ -28,42 +29,45 @@ CON
     I2C_FREQ    = 400_000
 ' --
 
+
 OBJ
 
-    cfg: "boardcfg.flip"
+    cfg:    "boardcfg.flip"
+    time:   "time"
     sensor: "sensor.imu.6dof.lsm303dlhc"
-    ser: "com.serial.terminal.ansi"
-    time: "time"
+    ser:    "com.serial.terminal.ansi"
 
-PUB setup{}
+
+PUB setup()
 
     ser.start(SER_BAUD)
-    time.msleep(10)
-    ser.clear{}
-    ser.strln(string("Serial terminal started"))
+    time.msleep(30)
+    ser.clear()
+    ser.strln(@"Serial terminal started")
 
     if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
-        ser.strln(string("LSM303DLHC driver started"))
+        ser.strln(@"LSM303DLHC driver started")
     else
-        ser.strln(string("LSM303DLHC driver failed to start - halting"))
+        ser.strln(@"LSM303DLHC driver failed to start - halting")
         repeat
 
-    sensor.preset_active{}
+    sensor.preset_active()
 
     repeat
         ser.pos_xy(0, 3)
-        show_accel_data{}
-        show_mag_data{}
-        if (ser.rx_check{} == "c")
-            cal_accel{}
-            cal_mag{}
+        show_accel_data()
+        show_mag_data()
+        if (ser.rx_check() == "c")
+            cal_accel()
+            cal_mag()
 
 #include "acceldemo.common.spinh"
 #include "magdemo.common.spinh"
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

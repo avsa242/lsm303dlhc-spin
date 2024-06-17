@@ -62,22 +62,25 @@ CON
     SINGLE          = 1
     SLEEP           = 2
 
+
 VAR
 
     long _accel_time_res
+
 
 OBJ
 
     i2c : "com.i2c"                             ' PASM I2C engine
     core: "core.con.lsm303dlhc"                 ' hw-specific low-level const's
 
+
 PUB null()
 'This is not a top-level object
 
+
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom I/O pins and I2C bus frequency
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.TPOR)                   ' wait for device startup
             if i2c.present(XL_SLAVE_WR)         ' test device bus presence
@@ -87,15 +90,18 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
+
 PUB stop()
 ' Stop the driver
     i2c.deinit()
+
 
 PUB defaults()
 ' Set factory defaults
     accel_scale(2)
     mag_scale(1)
     mag_data_rate(15)
+
 
 PUB preset_active()
 ' Like defaults(), but
@@ -105,6 +111,7 @@ PUB preset_active()
     accel_scale(2)
     mag_opmode(CONT)
     mag_scale(1)
+
 
 PUB preset_click_det()
 ' Presets for click-detection
@@ -118,6 +125,7 @@ PUB preset_click_det()
     dbl_click_set_win(637_500)
     click_set_latency(150_000)
     click_int_ena(TRUE)
+
 
 PUB accel_adc_res(bits=-2): curr_res | tmp1, tmp2
 ' Set accelerometer ADC resolution, in bits
@@ -150,6 +158,7 @@ PUB accel_adc_res(bits=-2): curr_res | tmp1, tmp2
     writereg(core.CTRL_REG1, 1, @tmp1)
     writereg(core.CTRL_REG4, 1, @tmp2)
 
+
 PUB accel_axis_ena(mask=-2): curr_mask
 ' Enable data output for Accelerometer - per axis
 '   Valid values: 0 or 1, for each axis:
@@ -169,12 +178,14 @@ PUB accel_axis_ena(mask=-2): curr_mask
     mask := ((curr_mask & core.XYZEN_MASK) | mask)
     writereg(core.CTRL_REG1, 1, @mask)
 
+
 PUB accel_bias(x, y, z)
 ' Read accelerometer calibration offset values
 '   x, y, z: pointers to copy offsets to
     long[x] := _abias[X_AXIS]
     long[y] := _abias[Y_AXIS]
     long[z] := _abias[Z_AXIS]
+
 
 PUB accel_set_bias(x, y, z)
 ' Write accelerometer calibration offset values
@@ -183,6 +194,7 @@ PUB accel_set_bias(x, y, z)
     _abias[X_AXIS] := (-1024 #> x <# 1023)
     _abias[Y_AXIS] := (-1024 #> y <# 1023)
     _abias[Z_AXIS] := (-1024 #> z <# 1023)
+
 
 PUB accel_data(ax, ay, az) | tmp[2]
 ' Read the Accelerometer output registers
@@ -194,6 +206,7 @@ PUB accel_data(ax, ay, az) | tmp[2]
     long[ax] := ((tmp.word[X_AXIS] signx 15) sar 4) - _abias[X_AXIS]
     long[ay] := ((tmp.word[Y_AXIS] signx 15) sar 4) - _abias[Y_AXIS]
     long[az] := ((tmp.word[Z_AXIS] signx 15) sar 4) - _abias[Z_AXIS]
+
 
 PUB accel_data_overrun(): flag
 ' Flag indicating previously acquired data has been overwritten
@@ -208,12 +221,14 @@ PUB accel_data_overrun(): flag
     readreg(core.STATUS_REG, 1, @flag)
     return ((flag >> core.X_OR) & core.OR_BITS)
 
+
 PUB accel_data_rdy(): flag
 ' Flag indicating accelerometer data is ready
 '   Returns: TRUE (-1) if data ready, FALSE otherwise
     flag := 0
     readreg(core.STATUS_REG, 1, @flag)
     return (((flag >> core.ZYXDA) & 1) == 1)
+
 
 PUB accel_data_rate(rate=-2): curr_rate
 ' Set accelerometer output data rate, in Hz
@@ -232,6 +247,7 @@ PUB accel_data_rate(rate=-2): curr_rate
     rate := ((curr_rate & core.ODR_MASK) | rate)
     writereg(core.CTRL_REG1, 1, @rate)
 
+
 PUB accel_int(): curr_state
 ' Read accelerometer interrupt state
 '   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
@@ -244,6 +260,7 @@ PUB accel_int(): curr_state
 '       0: X-axis low event
     curr_state := 0
     readreg(core.INT1_SRC, 1, @curr_state)
+
 
 PUB accel_int_mask(mask=-2): curr_mask
 ' Set accelerometer interrupt mask
@@ -264,7 +281,8 @@ PUB accel_int_mask(mask=-2): curr_mask
             readreg(core.INT1_CFG, 1, @curr_mask)
             return
 
-PUB accel_int_thresh{}: thresh
+
+PUB accel_int_thresh(): thresh
 ' Get accelerometer interrupt threshold level
 '   Returns: micro-g's
     thresh := 0
@@ -274,6 +292,7 @@ PUB accel_int_thresh{}: thresh
         4: thresh *= 32_000
         8: thresh *= 62_000
         16: thresh *= 186_000                   ' scale to micro-g's
+
 
 PUB accel_int_set_thresh(thresh) | ascl
 ' Set accelerometer interrupt threshold level, in micro-g's
@@ -285,6 +304,7 @@ PUB accel_int_set_thresh(thresh) | ascl
         16: ascl := 186_000                 ' scale to reg range
     thresh := ((0 #> thresh <# 16_000000) / ascl)
     writereg(core.INT1_THS, 1, @thresh)
+
 
 PUB accel_scale(scale=-2): curr_scl
 ' Set measurement range of the accelerometer, in g's
@@ -304,6 +324,7 @@ PUB accel_scale(scale=-2): curr_scl
     scale := ((curr_scl & core.FS_MASK) | scale)
     writereg(core.CTRL_REG4, 1, @scale)
 
+
 PUB click_axis_ena(mask=-2): curr_mask
 ' Enable click detection per axis, and per click type
 '   Valid values:
@@ -320,11 +341,13 @@ PUB click_axis_ena(mask=-2): curr_mask
             readreg(core.CLICK_CFG, 1, @curr_mask)
             return
 
+
 PUB clicked(): flag
 ' Flag indicating the sensor was single or double-clicked
 '   Returns: TRUE (-1) if sensor was single-clicked or double-clicked
 '            FALSE (0) otherwise
     return (((clickedint >> core.SCLICK) & core.CLICK_BITS) <> 0)
+
 
 PUB clicked_int(): int_src
 ' Clicked interrupt status
@@ -338,6 +361,7 @@ PUB clicked_int(): int_src
 '       0: X-axis clicked
     int_src := 0
     readreg(core.CLICK_SRC, 1, @int_src)
+
 
 PUB click_int_ena(state=-2): curr_state
 ' Enable click interrupts on INT1
@@ -353,12 +377,14 @@ PUB click_int_ena(state=-2): curr_state
     state := ((curr_state & core.I1_CLICK_MASK) | state)
     writereg(core.CTRL_REG3, 1, @state)
 
-PUB click_latency{}: ltime
+
+PUB click_latency(): ltime
 ' Get maximum elapsed interval between start of click and end of click
 '   Returns: microseconds
     ltime := 0
     readreg(core.TIME_LATENCY, 1, @ltime)
     return (ltime * _accel_time_res)
+
 
 PUB click_set_latency(ltime)
 ' Set maximum elapsed interval between start of click and end of click, in uSec
@@ -379,13 +405,15 @@ PUB click_set_latency(ltime)
     ltime := ((0 #> ltime <# (_accel_time_res * 255)) / _accel_time_res)
     writereg(core.TIME_LATENCY, 1, @ltime)
 
-PUB click_thresh{}: thresh | ares
+
+PUB click_thresh(): thresh | ares
 ' Get threshold for recognizing a click
 '   Returns: micro-g's
     ares := (accel_scale() * 1_000000) / 128     ' Resolution is current scale / 128
     thresh := 0
     readreg(core.CLICK_THS, 1, @thresh)
     return (thresh * ares)
+
 
 PUB click_set_thresh(thresh) | ares
 ' Set threshold for recognizing a click, in micro-g's
@@ -400,12 +428,14 @@ PUB click_set_thresh(thresh) | ares
     thresh := ((0 #> thresh <# (127 * ares)) / ares)
     writereg(core.CLICK_THS, 1, @thresh)
 
-PUB click_time{}: ctime | time_res
+
+PUB click_time(): ctime | time_res
 ' Get maximum elapsed interval between start of click and end of click
 '   Returns: microseconds
     ctime := 0
     readreg(core.TIME_LIMIT, 1, @ctime)
     return (ctime * _accel_time_res)
+
 
 PUB click_set_time(ctime)
 ' Set maximum elapsed interval between start of click and end of click, in uSec
@@ -426,12 +456,14 @@ PUB click_set_time(ctime)
     ctime := ((0 #> ctime <# (_accel_time_res * 127)) / _accel_time_res)
     writereg(core.TIME_LIMIT, 1, @ctime)
 
-PUB dbl_click_win{}: dctime
+
+PUB dbl_click_win(): dctime
 ' Get maximum elapsed interval between two consecutive clicks
 '   Returns: microseconds
     dctime := 0
     readreg(core.TIME_WINDOW, 1, @dctime)
     return (dctime * _accel_time_res)
+
 
 PUB dbl_click_set_win(dctime)
 ' Set maximum elapsed interval between two consecutive clicks, in uSec
@@ -452,6 +484,7 @@ PUB dbl_click_set_win(dctime)
     dctime := ((0 #> dctime <# (_accel_time_res * 255)) / _accel_time_res)
     writereg(core.TIME_WINDOW, 1, @dctime)
 
+
 PUB fifo_ena(state=-2): curr_state
 ' Enable FIFO memory
 '   Valid values: FALSE (0), TRUE(1 or -1)
@@ -467,6 +500,7 @@ PUB fifo_ena(state=-2): curr_state
     state := ((curr_state & core.FIFO_EN_MASK) | state)
     writereg(core.CTRL_REG5, 1, @state)
 
+
 PUB fifo_empty(): flag
 ' Flag indicating FIFO is empty
 '   Returns: FALSE (0): FIFO contains at least one sample, TRUE(-1): FIFO is empty
@@ -474,12 +508,14 @@ PUB fifo_empty(): flag
     readreg(core.FIFO_SRC_REG, 1, @flag)
     return (((flag >> core.EMPTY) & 1) == 1)
 
+
 PUB fifo_full(): flag
 ' Flag indicating FIFO is full
 '   Returns: FALSE (0): FIFO contains less than 32 samples, TRUE(-1): FIFO contains 32 samples
     flag := 0
     readreg(core.FIFO_SRC_REG, 1, @flag)
     return (((flag >> core.OVRN_FIFO) & 1) == 1)
+
 
 PUB fifo_mode(mode=-2): curr_mode
 ' Set FIFO behavior
@@ -500,6 +536,7 @@ PUB fifo_mode(mode=-2): curr_mode
     mode := ((curr_mode & core.FM_MASK) | mode)
     writereg(core.FIFO_CTRL_REG, 1, @mode)
 
+
 PUB fifo_thresh(thresh=-2): curr_thr
 ' Set FIFO threshold thresh
 '   Valid values: 1..32
@@ -515,6 +552,7 @@ PUB fifo_thresh(thresh=-2): curr_thr
     thresh := ((curr_thr & core.FTH_MASK) | thresh)
     writereg(core.FIFO_CTRL_REG, 1, @thresh)
 
+
 PUB fifo_nr_unread(): nr_samples
 ' Number of unread samples stored in FIFO
 '   Returns: 1..32
@@ -522,11 +560,13 @@ PUB fifo_nr_unread(): nr_samples
     readreg(core.FIFO_SRC_REG, 1, @nr_samples)
     return ((nr_samples & core.FSS_BITS) + 1)
 
+
 PUB mag_bias(x, y, z)
 ' Read Magnetometer calibration offset values
     long[x] := _mbias[X_AXIS]
     long[y] := _mbias[Y_AXIS]
     long[z] := _mbias[Z_AXIS]
+
 
 PUB mag_set_bias(x, y, z)
 ' Write Magnetometer calibration offset values
@@ -536,6 +576,7 @@ PUB mag_set_bias(x, y, z)
     _mbias[Y_AXIS] := -2048 #> y <# 2047
     _mbias[Z_AXIS] := -2048 #> z <# 2047
 
+
 PUB mag_data(mx, my, mz) | tmp[2]
 ' Read the Magnetometer output registers
     longfill(@tmp, 0, 2)
@@ -543,6 +584,7 @@ PUB mag_data(mx, my, mz) | tmp[2]
     long[mx] := (tmp.word[0] signx 15) - _mbias[X_AXIS]
     long[my] := (tmp.word[2] signx 15) - _mbias[Y_AXIS]
     long[mz] := (tmp.word[1] signx 15) - _mbias[Z_AXIS]
+
 
 PUB mag_data_rate(rate=-2): curr_rate
 ' Set Magnetometer Output Data Rate, in Hz
@@ -560,12 +602,14 @@ PUB mag_data_rate(rate=-2): curr_rate
     rate := ((curr_rate & core.DO_MASK) | rate)
     writereg(core.CRA_REG_M, 1, @rate)
 
+
 PUB mag_data_rdy(): flag
 '   Flag indicating new magnetometer data available
 '       Returns: TRUE(-1) if data available, FALSE otherwise
     flag := 0
     readreg(core.SR_REG_M, 1, @flag)
     return ((flag & core.DRDY_BITS) == 0)
+
 
 PUB mag_opmode(mode=-2): curr_mode
 ' Set magnetometer operating mode
@@ -582,6 +626,7 @@ PUB mag_opmode(mode=-2): curr_mode
             readreg(core.MR_REG_M, 1, @curr_mode)
             return (curr_mode & core.MD_BITS)
 
+
 PUB mag_scale(scale=-2): curr_scl
 ' Set full scale of Magnetometer, in Gauss
 '   Valid values: *1 (1.3), 2 (1.9), 3 (2.5), 4, 5 (4.7), 6 (5.6), 8 (8.1)
@@ -589,12 +634,12 @@ PUB mag_scale(scale=-2): curr_scl
     case scale
         1, 2, 3, 4, 5, 6, 8:
             scale := lookdown(scale: 1, 2, 3, 4, 5, 6, 8)
-            _mres[X_AXIS] := lookup(scale: 0_000909, 0_001169, 0_001492, 0_002222, {
-}           0_002500, 0_003030, 0_004347)
-            _mres[Y_AXIS] := lookup(scale: 0_000909, 0_001169, 0_001492, 0_002222, {
-}           0_002500, 0_003030, 0_004347)
-            _mres[Z_AXIS] := lookup(scale: 0_001020, 0_001315, 0_001666, 0_002500, {
-}           0_002816, 0_003389, 0_004878)
+            _mres[X_AXIS] := lookup(scale:  0_000909, 0_001169, 0_001492, 0_002222, 0_002500, ...
+                                            0_003030, 0_004347)
+            _mres[Y_AXIS] := lookup(scale:  0_000909, 0_001169, 0_001492, 0_002222, 0_002500, ...
+                                            0_003030, 0_004347)
+            _mres[Z_AXIS] := lookup(scale:  0_001020, 0_001315, 0_001666, 0_002500, 0_002816, ...
+                                            0_003389, 0_004878)
             scale <<= core.GN
             writereg(core.CRB_REG_M, 1, @scale)
         other:
@@ -602,6 +647,7 @@ PUB mag_scale(scale=-2): curr_scl
             readreg(core.CRB_REG_M, 1, @curr_scl)
             curr_scl := (curr_scl >> core.GN) & core.GN_BITS
             return lookup(curr_scl: 1, 2, 3, 4, 5, 6, 8)
+
 
 PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, byte_ord
 ' Read nr_bytes from slave device into ptr_buff
@@ -628,6 +674,7 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, byte_ord
         i2c.rdblock_msbf(ptr_buff, nr_bytes, TRUE)
     i2c.stop()
 
+
 PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' Write nr_bytes from ptr_buff to slave device
     case reg_nr                                 ' validate reg #
@@ -646,7 +693,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

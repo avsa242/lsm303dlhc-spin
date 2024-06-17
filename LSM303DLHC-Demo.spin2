@@ -1,18 +1,15 @@
 {
-    --------------------------------------------
-    Filename: LSM303DLHC-Demo.spin2
-    Author: Jesse Burt
-    Description: LSM303DLHC driver demo (P2 version)
+----------------------------------------------------------------------------------------------------
+    Filename:       LSM303DLHC-Demo.spin
+    Description:    LSM303DLHC driver demo
         * 6DoF data output
-    Copyright (c) 2022
-    Started Aug 12, 2017
-    Updated Nov 20, 2022
-    See end of file for terms of use.
-    --------------------------------------------
-
-    Build-time symbols supported by driver:
-        N/A
+    Author:         Jesse Burt
+    Started:        Aug 1, 2020
+    Updated:        Jun 17, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
@@ -27,16 +24,17 @@ CON
     I2C_FREQ    = 400_000
 ' --
 
+
 OBJ
 
-    cfg: "boardcfg.p2eval"
+    cfg:    "boardcfg.p2eval"
     sensor: "sensor.imu.6dof.lsm303dlhc"
-    ser: "com.serial.terminal.ansi"
+    ser:    "com.serial.terminal.ansi"
+
 
 PUB setup()
 
     ser.start(SER_BAUD)
-    waitms(10)
     ser.clear()
     ser.strln(@"Serial terminal started")
 
@@ -59,9 +57,10 @@ PUB setup()
 #include "acceldemo.common.spin2h"
 #include "magdemo.common.spin2h"
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

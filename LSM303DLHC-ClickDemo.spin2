@@ -1,15 +1,15 @@
 {
-    --------------------------------------------
-    Filename: LSM303DLHC-ClickDemo.spin2
-    Author: Jesse Burt
-    Description: Demo of the LSM303DLHC driver
-        click-detection functionality (P2 version)
-    Copyright (c) 2022
-    Started Aug 1, 2020
-    Updated Nov 20, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       LSM303DLHC-ClickDemo.spin2
+    Description:    Demo of the LSM303DLHC driver
+        * click-detection functionality
+    Author:         Jesse Burt
+    Started:        Aug 1, 2020
+    Updated:        Jun 17, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 
 CON
 
@@ -25,11 +25,13 @@ CON
     I2C_FREQ    = 400_000                       ' max is 400_000
 ' --
 
+
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    accel   : "sensor.imu.6dof.lsm303dlhc"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi"
+    accel:  "sensor.imu.6dof.lsm303dlhc"
+
 
 PUB main() | click_src, int_act, dclicked, sclicked, z_clicked, y_clicked, x_clicked
 
@@ -58,6 +60,7 @@ PUB main() | click_src, int_act, dclicked, sclicked, z_clicked, y_clicked, x_cli
     ser.show_cursor()                           ' restore terminal cursor
     repeat
 
+
 PRI yesno(val): resp
 ' Return pointer to string "Yes" or "No" depending on value called with
     case val
@@ -65,6 +68,7 @@ PRI yesno(val): resp
             return @"No "
         1:
             return @"Yes"
+
 
 PUB setup()
 
@@ -78,9 +82,10 @@ PUB setup()
         ser.strln(@"LSM303DLHC driver failed to start - halting")
         repeat
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
