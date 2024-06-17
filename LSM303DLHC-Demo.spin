@@ -12,7 +12,7 @@
 
 ' Uncomment the two lines below to use the bytecode-based I2C engine
 '#define LSM303DLHC_I2C_BC
-'#exportdef LSM303DLHC_I2C_BC
+'#pragma exportdef(LSM303DLHC_I2C_BC)
 
 
 CON
