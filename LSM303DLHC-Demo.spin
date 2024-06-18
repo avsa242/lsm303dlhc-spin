@@ -5,7 +5,7 @@
         * 6DoF data output
     Author:         Jesse Burt
     Started:        Jul 29, 2020
-    Updated:        Jun 17, 2024
+    Updated:        Jun 18, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -20,32 +20,23 @@ CON
     _clkmode    = cfg._clkmode
     _xinfreq    = cfg._xinfreq
 
-' -- User-modifiable constants
-    SER_BAUD    = 115_200
-
-    { I2C configuration }
-    SCL_PIN     = 28
-    SDA_PIN     = 29
-    I2C_FREQ    = 400_000
-' --
-
 
 OBJ
 
     cfg:    "boardcfg.flip"
     time:   "time"
-    sensor: "sensor.imu.6dof.lsm303dlhc"
-    ser:    "com.serial.terminal.ansi"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
+    sensor: "sensor.imu.6dof.lsm303dlhc" | SCL=28, SDA=29, I2C_FREQ=400_000
 
 
 PUB setup()
 
-    ser.start(SER_BAUD)
+    ser.start()
     time.msleep(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
+    if ( sensor.start() )
         ser.strln(@"LSM303DLHC driver started")
     else
         ser.strln(@"LSM303DLHC driver failed to start - halting")
@@ -57,7 +48,7 @@ PUB setup()
         ser.pos_xy(0, 3)
         show_accel_data()
         show_mag_data()
-        if (ser.rx_check() == "c")
+        if ( ser.getchar_noblock() == "c" )
             cal_accel()
             cal_mag()
 

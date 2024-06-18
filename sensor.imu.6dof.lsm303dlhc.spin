@@ -14,6 +14,12 @@
 
 CON
 
+    { default I/O configuration - these can be overridden by the parent object }
+    SCL             = 28
+    SDA             = 29
+    I2C_FREQ        = 100_000
+
+
     XL_SLAVE_WR     = core.XL_SLAVE_ADDR
     XL_SLAVE_RD     = core.XL_SLAVE_ADDR|1
     MAG_SLAVE_WR    = core.MAG_SLAVE_ADDR
@@ -87,16 +93,16 @@ PUB null()
 
 
 PUB start(): status
-' Start using "standard" Propeller I2C pins and 100kHz
-    status := startx(DEF_SCL, DEF_SDA, DEF_HZ)
+' Start using default I/O configuration
+    return startx(SCL, SDA, I2C_FREQ)
 
 
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom I/O pins and I2C bus frequency
-    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and I2C_HZ =< core.I2C_MAX_FREQ
-        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+    if ( lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) )
+        if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             time.usleep(core.TPOR)              ' wait for device startup
-            if i2c.present(XL_SLAVE_WR)         ' test device bus presence
+            if ( i2c.present(XL_SLAVE_WR) )     ' test device bus presence
                 return status
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
