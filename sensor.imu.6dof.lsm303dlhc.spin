@@ -1,10 +1,13 @@
 {
 ----------------------------------------------------------------------------------------------------
     Filename:       sensor.imu.6dof.lsm303dlhc.spin
-    Description:    Driver for the ST LSM303DLHC 6DoF IMU
+    Description:    Driver for the ST LSM303 6DoF IMU
+        Supported variants:
+            LSM303AGR
+            LSM303DLHC
     Author:         Jesse Burt
     Started:        Jul 29, 2020
-    Updated:        Jun 17, 2024
+    Updated:        Jun 19, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -69,6 +72,7 @@ CON
     CONT            = 0
     SINGLE          = 1
     SLEEP           = 2
+    IDLE            = SLEEP
 
 
 VAR
@@ -79,13 +83,13 @@ VAR
 OBJ
 
 { decide: Bytecode I2C engine, or PASM? Default is PASM if BC isn't specified }
-#ifdef LSM303DLHC_I2C_BC
-    i2c : "com.i2c.nocog"                       ' BC I2C engine
+#ifdef LSM303_I2C_BC
+    i2c:    "com.i2c.nocog"                     ' BC I2C engine
 #else
-    i2c : "com.i2c"                             ' PASM I2C engine
+    i2c:    "com.i2c"                           ' PASM I2C engine
 #endif
-    core: "core.con.lsm303dlhc"                 ' hw-specific low-level const's
-    time: "time"                                ' basic timing functions
+    core:   "core.con.lsm303dlhc"               ' hw-specific low-level const's
+    time:   "time"                              ' basic timing functions
 
 
 PUB null()
@@ -146,7 +150,7 @@ PUB preset_click_det()
     click_int_ena(TRUE)
 
 
-PUB accel_adc_res(bits): curr_res | tmp1, tmp2
+PUB accel_adc_res(bits=-2): curr_res | tmp1, tmp2
 ' Set accelerometer ADC resolution, in bits
 '   Valid values:
 '       8:  8-bit data output, Low-power mode
@@ -178,7 +182,7 @@ PUB accel_adc_res(bits): curr_res | tmp1, tmp2
     writereg(core.CTRL_REG4, 1, @tmp2)
 
 
-PUB accel_axis_ena(mask): curr_mask
+PUB accel_axis_ena(mask=-2): curr_mask
 ' Enable data output for Accelerometer - per axis
 '   Valid values: 0 or 1, for each axis:
 '       Bits    210
@@ -249,7 +253,7 @@ PUB accel_data_rdy(): flag
     return (((flag >> core.ZYXDA) & 1) == 1)
 
 
-PUB accel_data_rate(rate): curr_rate
+PUB accel_data_rate(rate=-2): curr_rate
 ' Set accelerometer output data rate, in Hz
 '   Valid values: 0 (power down), 1, 10, 25, *50, 100, 200, 400, 1620, 1344, 5376
 '   Any other value polls the chip and returns the current setting
@@ -281,7 +285,7 @@ PUB accel_int(): curr_state
     readreg(core.INT1_SRC, 1, @curr_state)
 
 
-PUB accel_int_mask(mask): curr_mask
+PUB accel_int_mask(mask=-2): curr_mask
 ' Set accelerometer interrupt mask
 '   Bits:   543210
 '       5: Z-axis high event
@@ -306,7 +310,7 @@ PUB accel_int_thresh(): thresh
 '   Returns: micro-g's
     thresh := 0
     readreg(core.INT1_THS, 1, @thresh)
-    case accel_scale(-2)
+    case accel_scale()
         2: thresh *= 16_000
         4: thresh *= 32_000
         8: thresh *= 62_000
@@ -316,7 +320,7 @@ PUB accel_int_thresh(): thresh
 PUB accel_int_set_thresh(thresh) | ascl
 ' Set accelerometer interrupt threshold level, in micro-g's
 '   Valid values: 0..16_000000 (clamped to range)
-    case accel_scale(-2)
+    case accel_scale()
         2: ascl := 16_000
         4: ascl := 32_000
         8: ascl := 62_000
@@ -325,7 +329,7 @@ PUB accel_int_set_thresh(thresh) | ascl
     writereg(core.INT1_THS, 1, @thresh)
 
 
-PUB accel_scale(scale): curr_scl
+PUB accel_scale(scale=-2): curr_scl
 ' Set measurement range of the accelerometer, in g's
 '   Valid values: 2, 4, 8, 16
 '   Any other value polls the chip and returns the current setting
@@ -334,7 +338,11 @@ PUB accel_scale(scale): curr_scl
     case scale
         2, 4, 8, 16:
             scale := lookdownz(scale: 2, 4, 8, 16)
+#ifdef LSM303AGR
+            _ares := lookupz(scale: 0_980, 1_950, 3_900, 11_720)
+#else
             _ares := lookupz(scale: 1_000, 2_000, 4_000, 12_000)
+#endif
             scale <<= core.FS
         other:
             curr_scl := (curr_scl >> core.FS) & core.FS_BITS
@@ -344,7 +352,7 @@ PUB accel_scale(scale): curr_scl
     writereg(core.CTRL_REG4, 1, @scale)
 
 
-PUB click_axis_ena(mask): curr_mask
+PUB click_axis_ena(mask=-2): curr_mask
 ' Enable click detection per axis, and per click type
 '   Valid values:
 '       Bits: 5..0
@@ -382,7 +390,7 @@ PUB clicked_int(): int_src
     readreg(core.CLICK_SRC, 1, @int_src)
 
 
-PUB click_int_ena(state): curr_state
+PUB click_int_ena(state=-2): curr_state
 ' Enable click interrupts on INT1
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -428,7 +436,7 @@ PUB click_set_latency(ltime)
 PUB click_thresh(): thresh | ares
 ' Get threshold for recognizing a click
 '   Returns: micro-g's
-    ares := (accel_scale(-2) * 1_000000) / 128   ' Resolution is current scale / 128
+    ares := (accel_scale() * 1_000000) / 128    ' Resolution is current scale / 128
     thresh := 0
     readreg(core.CLICK_THS, 1, @thresh)
     return (thresh * ares)
@@ -443,7 +451,7 @@ PUB click_set_thresh(thresh) | ares
 '       8               7_937500 (= 7.937500g)
 '       16              15_875000 (= 15.875000g)
 '   NOTE: Each LSB = (accel_scale()/128)*1M (e.g., 4g scale lsb=31250ug = 0_031250ug = 0.03125g)
-    ares := (accel_scale(-2) * 1_000000) / 128   ' Resolution is current scale / 128
+    ares := (accel_scale() * 1_000000) / 128    ' Resolution is current scale / 128
     thresh := ((0 #> thresh <# (127 * ares)) / ares)
     writereg(core.CLICK_THS, 1, @thresh)
 
@@ -504,7 +512,7 @@ PUB dbl_click_set_win(dctime)
     writereg(core.TIME_WINDOW, 1, @dctime)
 
 
-PUB fifo_ena(state): curr_state
+PUB fifo_ena(state=-2): curr_state
 ' Enable FIFO memory
 '   Valid values: FALSE (0), TRUE(1 or -1)
 '   Any other value polls the chip and returns the current setting
@@ -536,7 +544,7 @@ PUB fifo_full(): flag
     return (((flag >> core.OVRN_FIFO) & 1) == 1)
 
 
-PUB fifo_mode(mode): curr_mode
+PUB fifo_mode(mode=-2): curr_mode
 ' Set FIFO behavior
 '   Valid values:
 '       BYPASS      (%00) - Bypass mode - FIFO off
@@ -556,7 +564,7 @@ PUB fifo_mode(mode): curr_mode
     writereg(core.FIFO_CTRL_REG, 1, @mode)
 
 
-PUB fifo_thresh(thresh): curr_thr
+PUB fifo_thresh(thresh=-2): curr_thr
 ' Set FIFO threshold thresh
 '   Valid values: 1..32
 '   Any other value polls the chip and returns the current setting
@@ -580,6 +588,106 @@ PUB fifo_nr_unread(): nr_samples
     return ((nr_samples & core.FSS_BITS) + 1)
 
 
+#ifdef LSM303AGR
+{ LSM303AGR }
+PUB mag_bias(x, y, z) | tmp[2]
+' Read Magnetometer calibration offset values
+'   x, y, z: pointers to long-sized variables
+    longfill(@tmp, 0, 2)
+    readreg(core.OFFSET_X_REG_L_M, 6, @tmp)
+
+    { copy bias values to destination variables, and cache them in RAM, too }
+    long[x] := _mbias[X_AXIS] := ~~tmp.word[0]
+    long[y] := _mbias[Y_AXIS] := ~~tmp.word[1]
+    long[z] := _mbias[Z_AXIS] := ~~tmp.word[2]
+
+
+PUB mag_data(mx, my, mz) | tmp[2]
+' Read the Magnetometer output registers
+    longfill(@tmp, 0, 2)
+    readreg(core.OUTX_L_REG_M, 6, @tmp)
+
+    long[mx] := ~~tmp.word[0]
+    long[my] := ~~tmp.word[1]
+    long[mz] := ~~tmp.word[2]
+
+
+PUB mag_data_rate(r=-2): c
+' Set magnetometer output data rate
+'   r:  data rate in Hz
+'       10, 20, 50, 100 (default: 10)
+'   Returns:
+'       none, if parameter value passed is in the above list
+'       current data rate, if other values are given
+    c := 0
+    readreg(core.CFG_REG_A_M, 1, @c)
+    case r
+        10, 20, 50, 100:
+            r := (c & core.MAG_ODR_MASK) | (lookdownz(r: 10, 20, 50, 100) << core.MAG_ODR)
+            writereg(core.CFG_REG_A_M, 1, @r)
+        other:
+            { map MAG_ODR bitfield 0, 1, 2, 3 to 10, 20, 50, 100 }
+            return ( lookupz(((c >> core.MAG_ODR) & core.MAG_ODR_BITS): 10, 20, 50, 100) )
+
+
+PUB mag_data_rdy(): f
+' Flag indicating new magnetometer data is ready
+'   Returns:
+'       TRUE (-1) or FALSE (0)
+    f := 0
+    readreg(core.STATUS_REG_M, 1, @f)
+    return ( (f & core.DATA_READY) <> 0 )
+
+
+PUB mag_dev_id(): id
+' Read the sensor's device identification
+'   Returns:
+'       $40 on success
+'       other values on failure
+    id := 0
+    readreg(core.WHO_AM_I_M, 1, @id)
+
+
+PUB mag_opmode(m=-2): c
+' Set magnetometer operating mode
+'   m:
+'       CONT (0)
+'       SINGLE (1)
+'       IDLE (2)
+'   Returns:
+'       none, if parameter value passed is in the above list
+'       current data rate, if other values are given
+    c := 0
+    readreg(core.CFG_REG_A_M, 1, @c)
+    case m
+        CONT, SINGLE, IDLE:
+            m := (c & core.MD_MASK) | m
+            writereg(core.CFG_REG_A_M, 1, @m)
+        other:
+            return (c & core.MD_BITS)
+
+
+PUB mag_scale(s=-2): c
+' Set magnetometer full-scale range
+'   LSM303AGR: N/A (device has no selectable range). Provided for API compatibility only
+'   Returns:
+'       full-scale range, in Gauss
+    longfill(@_mres, 1_500, 3)                  ' set LSM303AGR sensitivity: 1.5mGs/LSB
+    return 50                                   ' LSM303AGR mag FSR is 49.152Gs
+
+
+PUB mag_set_bias(x, y, z)
+' Write Magnetometer calibration offset values
+'   Valid values:
+    writereg(core.OFFSET_X_REG_L_M, 2, @x)      ' write the new bias values
+    writereg(core.OFFSET_Y_REG_L_M, 2, @y)
+    writereg(core.OFFSET_Z_REG_L_M, 2, @z)
+    longmove(@_mbias, @x, 3)                    ' copy the values just set to RAM
+
+
+#else
+
+{ LSM303DLHC }
 PUB mag_bias(x, y, z)
 ' Read Magnetometer calibration offset values
     long[x] := _mbias[X_AXIS]
@@ -600,12 +708,13 @@ PUB mag_data(mx, my, mz) | tmp[2]
 ' Read the Magnetometer output registers
     longfill(@tmp, 0, 2)
     readreg(core.OUT_X_H_M, 6, @tmp)
+
     long[mx] := ~~tmp.word[0] - _mbias[X_AXIS]
     long[my] := ~~tmp.word[2] - _mbias[Y_AXIS]
     long[mz] := ~~tmp.word[1] - _mbias[Z_AXIS]
 
 
-PUB mag_data_rate(rate): curr_rate
+PUB mag_data_rate(rate=-2): curr_rate
 ' Set Magnetometer Output Data Rate, in Hz
 '   Valid values: 0 (0.75), 1 (1.5), 3, 7 (7.5), *15, 30, 75, 220
 '   Any other value polls the chip and returns the current setting
@@ -630,7 +739,7 @@ PUB mag_data_rdy(): flag
     return ((flag & core.DRDY_BITS) == 0)
 
 
-PUB mag_opmode(mode): curr_mode
+PUB mag_opmode(mode=-2): curr_mode
 ' Set magnetometer operating mode
 '   Valid values:
 '       CONT (0): Continuous conversion
@@ -646,7 +755,7 @@ PUB mag_opmode(mode): curr_mode
             return (curr_mode & core.MD_BITS)
 
 
-PUB mag_scale(scale): curr_scl
+PUB mag_scale(scale=-2): curr_scl
 ' Set full scale of Magnetometer, in Gauss
 '   Valid values: *1 (1.3), 2 (1.9), 3 (2.5), 4, 5 (4.7), 6 (5.6), 8 (8.1)
 '   Any other value polls the chip and returns the current setting
@@ -667,6 +776,8 @@ PUB mag_scale(scale): curr_scl
             curr_scl := (curr_scl >> core.GN) & core.GN_BITS
             return lookup(curr_scl: 1, 2, 3, 4, 5, 6, 8)
 
+#endif
+
 
 PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, byte_ord
 ' Read nr_bytes from slave device into ptr_buff
@@ -676,8 +787,13 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, byte_ord
         $32_28..$32_2D:                         ' Accel data output regs
             reg_nr |= core.RD_MULTI
             byte_ord := LSBF
+#ifdef LSM303AGR
+        $3c_45..$3c4a, $3c_4f, $3c_60..$3c6d:
+            byte_ord := LSBF
+#else
         $3C_00..$3C_0C, $3C_31, $3C_32:         ' Mag regs
             byte_ord := MSBF
+#endif
         other:
             return
 
@@ -688,9 +804,9 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, byte_ord
     i2c.start()
     i2c.write(reg_nr.byte[1] | 1)
     if (byte_ord == LSBF)                       ' accelerometer data is LSBf
-        i2c.rdblock_lsbf(ptr_buff, nr_bytes, TRUE)
+        i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
     elseif (byte_ord == MSBF)                   ' mag is MSBf
-        i2c.rdblock_msbf(ptr_buff, nr_bytes, TRUE)
+        i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
     i2c.stop()
 
 
@@ -698,7 +814,11 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' Write nr_bytes from ptr_buff to slave device
     case reg_nr                                 ' validate reg #
         $32_20..$32_26, $32_2E, $32_30, $32_32..$32_34, $32_36..$32_3D:
+#ifdef LSM303AGR
+        $3c_45..$3c_4a, $3c_60..$3c_63, $3c_66:
+#else
         $3C_00..$3C_02:
+#endif
         other:
             return
 

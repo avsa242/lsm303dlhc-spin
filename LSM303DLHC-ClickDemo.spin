@@ -14,6 +14,10 @@
 '#define LSM303DLHC_I2C_BC
 '#pragma exportdef(LSM303DLHC_I2C_BC)
 
+' Uncomment the two lines below if the sensor is an LSM303AGR (otherwise, an LSM303DLHC is assumed)
+#define LSM303AGR
+#pragma exportdef(LSM303AGR)
+
 
 CON
 
@@ -73,9 +77,9 @@ PUB setup()
     ser.strln(@"Serial terminal started")
 
     if ( accel.start() )
-        ser.strln(@"LSM303DLHC driver started (I2C)")
+        ser.strln(@"LSM303 driver started (I2C)")
     else
-        ser.strln(@"LSM303DLHC driver failed to start - halting")
+        ser.strln(@"LSM303 driver failed to start - halting")
         repeat
 
 

@@ -5,15 +5,18 @@
         * 6DoF data output
     Author:         Jesse Burt
     Started:        Jul 29, 2020
-    Updated:        Jun 18, 2024
+    Updated:        Jun 19, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
 ' Uncomment the two lines below to use the bytecode-based I2C engine
-'#define LSM303DLHC_I2C_BC
-'#pragma exportdef(LSM303DLHC_I2C_BC)
+#define LSM303_I2C_BC
+#pragma exportdef(LSM303_I2C_BC)
 
+' Uncomment the two lines below if the sensor is an LSM303AGR (otherwise, an LSM303DLHC is assumed)
+#define LSM303AGR
+#pragma exportdef(LSM303AGR)
 
 CON
 
@@ -37,9 +40,9 @@ PUB setup()
     ser.strln(@"Serial terminal started")
 
     if ( sensor.start() )
-        ser.strln(@"LSM303DLHC driver started")
+        ser.strln(@"LSM303 driver started")
     else
-        ser.strln(@"LSM303DLHC driver failed to start - halting")
+        ser.strln(@"LSM303 driver failed to start - halting")
         repeat
 
     sensor.preset_active()

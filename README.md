@@ -1,7 +1,7 @@
 # lsm303dlhc-spin 
 -----------------
 
-This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the LSM303DLHC 6DoF IMU
+This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the LSM303 (DLHC, AGR) 6DoF IMU
 
 **IMPORTANT**: This software is meant to be used with the [spin-standard-library](https://github.com/avsa242/spin-standard-library) (P8X32A) or [p2-spin-standard-library](https://github.com/avsa242/p2-spin-standard-library) (P2X8C4M64P). Please install the applicable library first before attempting to use this code, otherwise you will be missing several files required to build the project.
 
@@ -11,7 +11,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the LSM303D
 * I2C connection at up to 400kHz
 * Read raw accelerometer, magnetometer data output, or scaled (micro-g's, micro-gauss, resp.)
 * Set output data rate
-* Set full-scale range
+* Set full-scale range (except LSM303AGR magnetometer - hardware limitation)
 * Enable per-axis output (accel)
 * Flags to indicate data is ready (accel, mag), has overrun (accel), has overflowed current scale setting (mag)
 * Set calibration offsets (accel, mag)
@@ -40,13 +40,20 @@ P2/SPIN2:
 |-----------|----------|------------------------|--------------|-----------------------|
 | P1        | SPIN1    | FlexSpin (6.9.4)       | Bytecode     | OK                    |
 | P1        | SPIN1    | FlexSpin (6.9.4)       | Native/PASM  | OK                    |
-| P2        | SPIN2    | FlexSpin (6.9.4)       | NuCode       | Build OK              |
+| P2        | SPIN2    | FlexSpin (6.9.4)       | NuCode       | OK                    |
 | P2        | SPIN2    | FlexSpin (6.9.4)       | Native/PASM2 | OK                    |
 
 (other versions or toolchains not listed are __not supported__, and _may or may not_ work)
 
 
+## Hardware compatibility
+
+* LSM303DLHC
+* LSM303AGR
+
+
 ## Limitations
 
 * No support for DRDY or interrupt pins
+* No support for SPI-connected (LSM303AGR only) sensors - planned
 
