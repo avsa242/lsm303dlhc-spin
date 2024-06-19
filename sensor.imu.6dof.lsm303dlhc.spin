@@ -47,10 +47,15 @@ CON
 ' Scales and data rates used during calibration/bias/offset process
     CAL_XL_SCL      = 2
     CAL_G_SCL       = 0
+#ifdef LSM303AGR
+    CAL_M_SCL       = 50
+    CAL_M_DR        = 100
+#else
     CAL_M_SCL       = 1_3
+    CAL_M_DR        = 75
+#endif
     CAL_XL_DR       = 100
     CAL_G_DR        = 0
-    CAL_M_DR        = 75
 
     FP_SCALE        = 1_000_000
 
@@ -602,6 +607,23 @@ PUB mag_bias(x, y, z) | tmp[2]
     long[z] := _mbias[Z_AXIS] := ~~tmp.word[2]
 
 
+PUB mag_block_data_update_ena(en): c
+' Enable magnetometer output data block update
+'   en:
+'       TRUE (non-zero values): output registers not updated until MSB and LSB have been read
+'           (ensures that both MSB and LSB are from the same sample)
+'       FALSE (0): continuous update
+'   Returns:
+'       current setting if called with other values
+    c := 0
+    readreg(core.CFG_REG_C_M, 1, @c)
+    if ( en => -1 )
+        en := (c & core.MAG_BDU_MASK) | ( ((c <> 0) & 1) << core.MAG_BDU )
+        writereg(core.CFG_REG_C_M, 1, @en)
+    else
+        return ( ((c >> core.MAG_BDU) & 1) == 1 )
+
+
 PUB mag_data(mx, my, mz) | tmp[2]
 ' Read the Magnetometer output registers
     longfill(@tmp, 0, 2)
@@ -648,6 +670,22 @@ PUB mag_dev_id(): id
     readreg(core.WHO_AM_I_M, 1, @id)
 
 
+PUB mag_lpf_ena(en=-2): c
+' Enable magnetometer output data low-pass filter
+'   en:
+'       TRUE (non-zero values -1 or greater): enable
+'       FALSE (0): disable
+'   Returns:
+'       current setting if called with other values
+    c := 0
+    readreg(core.CFG_REG_B_M, 1, @c)
+    if ( en => true )
+        en := (c & core.LPF_MASK) | ((en <> 0) & 1)
+        writereg(core.CFG_REG_B_M, 1, @en)
+    else
+        return ( (c & 1) == 1 )
+
+
 PUB mag_opmode(m=-2): c
 ' Set magnetometer operating mode
 '   m:
@@ -684,6 +722,21 @@ PUB mag_set_bias(x, y, z)
     writereg(core.OFFSET_Z_REG_L_M, 2, @z)
     longmove(@_mbias, @x, 3)                    ' copy the values just set to RAM
 
+
+PUB mag_temp_comp_ena(en=-2): c
+' Enable magnetometer temperature compensation
+'   en:
+'       TRUE (non-zero values -1 or greater): enable
+'       FALSE (0): disable
+'   Returns:
+'       current setting when called with other values
+    c := 0
+    readreg(core.CFG_REG_A_M, 1, @c)
+    if ( en => -1 )
+        en := (c & core.COMP_TEMP_EN_MASK) | (((en <> 0) & 1) << core.COMP_TEMP_EN)
+        writereg(core.CFG_REG_A_M, 1, @en)
+    else
+        return ( ((c >> core.COMP_TEMP_EN) & 1) == 1 )
 
 #else
 

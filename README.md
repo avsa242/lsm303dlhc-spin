@@ -18,6 +18,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the LSM303 
 * FIFO control and flag reading (accel; empty, full, number of unread samples)
 * Single and double-click detection (accel)
 * Interrupts: per-axis mask, threshold (accel)
+* Magnetometer: low-pass filter output data, on-chip temperature compensation
 
 
 ## Requirements
