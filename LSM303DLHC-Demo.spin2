@@ -11,8 +11,8 @@
 }
 
 ' Uncomment the two lines below if the sensor is an LSM303AGR (otherwise, an LSM303DLHC is assumed)
-#define LSM303AGR
-#pragma exportdef(LSM303AGR)
+'#define LSM303AGR
+'#pragma exportdef(LSM303AGR)
 
 CON
 

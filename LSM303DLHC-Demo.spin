@@ -11,12 +11,12 @@
 }
 
 ' Uncomment the two lines below to use the bytecode-based I2C engine
-#define LSM303_I2C_BC
-#pragma exportdef(LSM303_I2C_BC)
+'#define LSM303_I2C_BC
+'#pragma exportdef(LSM303_I2C_BC)
 
 ' Uncomment the two lines below if the sensor is an LSM303AGR (otherwise, an LSM303DLHC is assumed)
-#define LSM303AGR
-#pragma exportdef(LSM303AGR)
+'#define LSM303AGR
+'#pragma exportdef(LSM303AGR)
 
 CON
 
