@@ -155,8 +155,8 @@ PUB preset_click_det()
     click_int_ena(TRUE)
 
 
-PUB accel_adc_res(bits=-2): curr_res | tmp1, tmp2
-' Set accelerometer ADC resolution, in bits
+PUB accel_adc_res(b=-2): c | tmp1, tmp2
+' Set accelerometer ADC resolution, in b
 '   Valid values:
 '       8:  8-bit data output, Low-power mode
 '       10: 10-bit data output, Normal mode
@@ -164,7 +164,7 @@ PUB accel_adc_res(bits=-2): curr_res | tmp1, tmp2
 '   Any other value polls the chip and returns the current setting
     tmp1 := readreg(core.CTRL_REG1)
     tmp2 := readreg(core.CTRL_REG4)
-    case bits
+    case b
         8:
             tmp1 &= core.LPEN_MASK
             tmp2 &= core.HR_MASK
@@ -186,23 +186,23 @@ PUB accel_adc_res(bits=-2): curr_res | tmp1, tmp2
     writereg(core.CTRL_REG4, tmp2)
 
 
-PUB accel_axis_ena(mask=-2): curr_mask
+PUB accel_axis_ena(m=-2): c
 ' Enable data output for Accelerometer - per axis
 '   Valid values: 0 or 1, for each axis:
 '       Bits    210
 '               XYZ
 '   Any other value polls the chip and returns the current setting
-    curr_mask := readreg(core.CTRL_REG1)
-    case mask
+    c := readreg(core.CTRL_REG1)
+    case m
         %000..%111:
             ' reverse the position of the XYZ bits, since internally, they're
             ' ZYX (XYZ order is sensor.imu standard)
-            mask := (mask >< 3) & core.XYZEN_BITS
+            m := (m >< 3) & core.XYZEN_BITS
         other:
-            return ((curr_mask & core.XYZEN_BITS) >< 3)
+            return ((c & core.XYZEN_BITS) >< 3)
 
-    mask := ((curr_mask & core.XYZEN_MASK) | mask)
-    writereg(core.CTRL_REG1, mask)
+    m := ((c & core.XYZEN_MASK) | m)
+    writereg(core.CTRL_REG1, m)
 
 
 PUB accel_bias(x, y, z)
@@ -234,7 +234,7 @@ PUB accel_data(ax, ay, az) | tmp[2]
     long[az] := (~~tmp.word[Z_AXIS] ~> 4) - _abias[Z_AXIS]
 
 
-PUB accel_data_overrun(): flag
+PUB accel_data_overrun(): f
 ' Flag indicating previously acquired data has been overwritten
 '   Returns:
 '       Bits 3210 (decimal val):
@@ -243,35 +243,35 @@ PUB accel_data_overrun(): flag
 '           1 (2): Y-axis data overrun
 '           0 (1): X-axis data overrun
 '       Returns 0 otherwise
-    flag := readreg(core.STATUS_REG)
-    return ((flag >> core.X_OR) & core.OR_BITS)
+    f := readreg(core.STATUS_REG)
+    return ((f >> core.X_OR) & core.OR_BITS)
 
 
-PUB accel_data_rdy(): flag
+PUB accel_data_rdy(): f
 ' Flag indicating accelerometer data is ready
 '   Returns: TRUE (-1) if data ready, FALSE otherwise
-    flag := readreg(core.STATUS_REG)
-    return (((flag >> core.ZYXDA) & 1) == 1)
+    f := readreg(core.STATUS_REG)
+    return ( ( (f >> core.ZYXDA) & 1) == 1)
 
 
-PUB accel_data_rate(rate=-2): curr_rate
+PUB accel_data_rate(r=-2): c
 ' Set accelerometer output data rate, in Hz
 '   Valid values: 0 (power down), 1, 10, 25, *50, 100, 200, 400, 1620, 1344, 5376
 '   Any other value polls the chip and returns the current setting
-    curr_rate := readreg(core.CTRL_REG1)
-    case rate
+    c := readreg(core.CTRL_REG1)
+    case r
         0, 1, 10, 25, 50, 100, 200, 400, 1620, 1344, 5376:
-            _accel_time_res := (1_000000 / rate)' calc time resolution
-            rate := lookdownz(rate: 0, 1, 10, 25, 50, 100, 200, 400, 1620, 1344, 5376) << core.ODR
+            _accel_time_res := (1_000000 / r)   ' calc time resolution
+            r := lookdownz(r: 0, 1, 10, 25, 50, 100, 200, 400, 1620, 1344, 5376) << core.ODR
         other:
-            curr_rate := ((curr_rate >> core.ODR) & core.ODR_BITS)
-            return lookupz(curr_rate: 0, 1, 10, 25, 50, 100, 200, 400, 1620, 1344, 5376)
+            c := ((c >> core.ODR) & core.ODR_BITS)
+            return lookupz(c: 0, 1, 10, 25, 50, 100, 200, 400, 1620, 1344, 5376)
 
-    rate := ((curr_rate & core.ODR_MASK) | rate)
-    writereg(core.CTRL_REG1, rate)
+    r := ((c & core.ODR_MASK) | r)
+    writereg(core.CTRL_REG1, r)
 
 
-PUB accel_int(): curr_state
+PUB accel_int(): c
 ' Read accelerometer interrupt state
 '   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
 '       6: One or more interrupts have been generated
@@ -281,10 +281,10 @@ PUB accel_int(): curr_state
 '       2: Y-axis low event
 '       1: X-axis high event
 '       0: X-axis low event
-    curr_state := readreg(core.INT1_SRC)
+    return readreg(core.INT1_SRC)
 
 
-PUB accel_int_mask(mask=-2): curr_mask
+PUB accel_int_mask(m=-2): c
 ' Set accelerometer interrupt mask
 '   Bits:   543210
 '       5: Z-axis high event
@@ -295,25 +295,25 @@ PUB accel_int_mask(mask=-2): curr_mask
 '       0: X-axis low event
 '   Valid values: %000000..%111111
 '   Any other value polls the chip and returns the current setting
-    case mask
+    case m
         %000000..%111111:
-            writereg(core.INT1_CFG, mask)
+            writereg(core.INT1_CFG, m)
         other:
             return readreg(core.INT1_CFG)
 
 
-PUB accel_int_thresh(): thresh
+PUB accel_int_thresh(): t
 ' Get accelerometer interrupt threshold level
 '   Returns: micro-g's
-    thresh := readreg(core.INT1_THS)
+    t := readreg(core.INT1_THS)
     case accel_scale()
-        2: thresh *= 16_000
-        4: thresh *= 32_000
-        8: thresh *= 62_000
-        16: thresh *= 186_000                   ' scale to micro-g's
+        2: t *= 16_000
+        4: t *= 32_000
+        8: t *= 62_000
+        16: t *= 186_000                        ' scale to micro-g's
 
 
-PUB accel_int_set_thresh(thresh) | ascl
+PUB accel_int_set_thresh(t) | ascl
 ' Set accelerometer interrupt threshold level, in micro-g's
 '   Valid values: 0..16_000000 (clamped to range)
     case accel_scale()
@@ -321,33 +321,33 @@ PUB accel_int_set_thresh(thresh) | ascl
         4: ascl := 32_000
         8: ascl := 62_000
         16: ascl := 186_000                 ' scale to reg range
-    thresh := ((0 #> thresh <# 16_000000) / ascl)
-    writereg(core.INT1_THS, thresh)
+    t := ((0 #> thresh <# 16_000000) / ascl)
+    writereg(core.INT1_THS, t)
 
 
-PUB accel_scale(scale=-2): curr_scl
+PUB accel_scale(s=-2): c
 ' Set measurement range of the accelerometer, in g's
 '   Valid values: 2, 4, 8, 16
 '   Any other value polls the chip and returns the current setting
-    curr_scl := readreg(core.CTRL_REG4)
-    case scale
+    c := readreg(core.CTRL_REG4)
+    case s
         2, 4, 8, 16:
-            scale := lookdownz(scale: 2, 4, 8, 16)
+            s := lookdownz(s: 2, 4, 8, 16)
 #ifdef LSM303AGR
-            _ares := lookupz(scale: 0_980, 1_950, 3_900, 11_720)
+            _ares := lookupz(s: 0_980, 1_950, 3_900, 11_720)
 #else
-            _ares := lookupz(scale: 1_000, 2_000, 4_000, 12_000)
+            _ares := lookupz(s: 1_000, 2_000, 4_000, 12_000)
 #endif
-            scale <<= core.FS
+            s <<= core.FS
         other:
-            curr_scl := (curr_scl >> core.FS) & core.FS_BITS
-            return lookupz(curr_scl: 2, 4, 8, 16)
+            c := (c >> core.FS) & core.FS_BITS
+            return lookupz(c: 2, 4, 8, 16)
 
-    scale := ((curr_scl & core.FS_MASK) | scale)
-    writereg(core.CTRL_REG4, scale)
+    s := ((c & core.FS_MASK) | s)
+    writereg(core.CTRL_REG4, s)
 
 
-PUB click_axis_ena(mask=-2): curr_mask
+PUB click_axis_ena(m=-2): c
 ' Enable click detection per axis, and per click type
 '   Valid values:
 '       Bits: 5..0
@@ -355,21 +355,21 @@ PUB click_axis_ena(mask=-2): curr_mask
 '       [3..2]: Y-axis double-click..single-click
 '       [1..0]: X-axis double-click..single-click
 '   Any other value polls the chip and returns the current setting
-    case mask
+    case m
         %000000..%111111:
-            writereg(core.CLICK_CFG, mask)
+            writereg(core.CLICK_CFG, m)
         other:
             return readreg(core.CLICK_CFG)
 
 
-PUB clicked(): flag
+PUB clicked(): f
 ' Flag indicating the sensor was single or double-clicked
 '   Returns: TRUE (-1) if sensor was single-clicked or double-clicked
 '            FALSE (0) otherwise
-    return (((clickedint >> core.SCLICK) & core.CLICK_BITS) <> 0)
+    return ( ( (clickedint >> core.SCLICK) & core.CLICK_BITS) <> 0)
 
 
-PUB clicked_int(): int_src
+PUB clicked_int(): i
 ' Clicked interrupt status
 '   Bits: 6..0
 '       6: Interrupt active
@@ -382,29 +382,29 @@ PUB clicked_int(): int_src
     return readreg(core.CLICK_SRC)
 
 
-PUB click_int_ena(state=-2): curr_state
+PUB click_int_ena(s=-2): c
 ' Enable click interrupts on INT1
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    curr_state := readreg(core.CTRL_REG3)
-    case ||(state)
+    c := readreg(core.CTRL_REG3)
+    case ||(s)
         0, 1:
-            state := ||(state) << core.I1_CLICK
+            s := ||(s) << core.I1_CLICK
         other:
-            return ((curr_state >> core.I1_CLICK) == 1)
+            return ((c >> core.I1_CLICK) == 1)
 
-    state := ((curr_state & core.I1_CLICK_MASK) | state)
-    writereg(core.CTRL_REG3, state)
+    s := ((c & core.I1_CLICK_MASK) | s)
+    writereg(core.CTRL_REG3, s)
 
 
-PUB click_latency(): ltime
+PUB click_latency(): t
 ' Get maximum elapsed interval between start of click and end of click
 '   Returns: microseconds
-    ltime := readreg(core.TIME_LATENCY)
-    return (ltime * _accel_time_res)
+    t := readreg(core.TIME_LATENCY)
+    return (t * _accel_time_res)
 
 
-PUB click_set_latency(ltime)
+PUB click_set_latency(t)
 ' Set maximum elapsed interval between start of click and end of click, in uSec
 '   (i.e., time from set ClickThresh exceeded to falls back below threshold)
 '   Valid values:
@@ -420,19 +420,19 @@ PUB click_set_latency(ltime)
 '       1600                625                     159_375         0.625 .. 159.375
 '   NOTE: Minimum unit is dependent on the current accel_data_rate()
 '   NOTE: ST application note example uses accel_data_rate(400)
-    ltime := ((0 #> ltime <# (_accel_time_res * 255)) / _accel_time_res)
-    writereg(core.TIME_LATENCY, ltime)
+    t := ((0 #> t <# (_accel_time_res * 255)) / _accel_time_res)
+    writereg(core.TIME_LATENCY, t)
 
 
-PUB click_thresh(): thresh | ares
+PUB click_thresh(): t | ares
 ' Get threshold for recognizing a click
 '   Returns: micro-g's
     ares := (accel_scale() * 1_000000) / 128    ' Resolution is current scale / 128
-    thresh := readreg(core.CLICK_THS)
-    return (thresh * ares)
+    t := readreg(core.CLICK_THS)
+    return (t * ares)
 
 
-PUB click_set_thresh(thresh) | ares
+PUB click_set_thresh(t) | ares
 ' Set threshold for recognizing a click, in micro-g's
 '   Valid values:
 '       accel_scale()   Max thresh
@@ -442,18 +442,18 @@ PUB click_set_thresh(thresh) | ares
 '       16              15_875000 (= 15.875000g)
 '   NOTE: Each LSB = (accel_scale()/128)*1M (e.g., 4g scale lsb=31250ug = 0_031250ug = 0.03125g)
     ares := (accel_scale() * 1_000000) / 128    ' Resolution is current scale / 128
-    thresh := ((0 #> thresh <# (127 * ares)) / ares)
-    writereg(core.CLICK_THS, thresh)
+    t := ((0 #> t <# (127 * ares) ) / ares)
+    writereg(core.CLICK_THS, t)
 
 
-PUB click_time(): ctime | time_res
+PUB click_time(): c
 ' Get maximum elapsed interval between start of click and end of click
 '   Returns: microseconds
-    ctie := readreg(core.TIME_LIMIT)
-    return (ctime * _accel_time_res)
+    c := readreg(core.TIME_LIMIT)
+    return (c * _accel_time_res)
 
 
-PUB click_set_time(ctime)
+PUB click_set_time(t)
 ' Set maximum elapsed interval between start of click and end of click, in uSec
 '   (i.e., time from set ClickThresh exceeded to falls back below threshold)
 '   Valid values:
@@ -469,18 +469,18 @@ PUB click_set_time(ctime)
 '       1600                625                     79_375               79
 '   NOTE: Minimum unit is dependent on the current accel_data_rate()
 '   NOTE: ST application note example uses accel_data_rate(400)
-    ctime := ((0 #> ctime <# (_accel_time_res * 127)) / _accel_time_res)
-    writereg(core.TIME_LIMIT, ctime)
+    t := ((0 #> t <# (_accel_time_res * 127)) / _accel_time_res)
+    writereg(core.TIME_LIMIT, t)
 
 
-PUB dbl_click_win(): dctime
+PUB dbl_click_win(): t
 ' Get maximum elapsed interval between two consecutive clicks
 '   Returns: microseconds
-    dctime := readreg(core.TIME_WINDOW)
-    return (dctime * _accel_time_res)
+    t := readreg(core.TIME_WINDOW)
+    return (t * _accel_time_res)
 
 
-PUB dbl_click_set_win(dctime)
+PUB dbl_click_set_win(t)
 ' Set maximum elapsed interval between two consecutive clicks, in uSec
 '   Valid values:
 '       accel_data_rate()   Min time (uS/step size) Max time (uS)   (equiv. range in mS)
@@ -496,40 +496,40 @@ PUB dbl_click_set_win(dctime)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Minimum unit is dependent on the current accel_data_rate()
 '   NOTE: ST application note example uses accel_data_rate(400)
-    dctime := ((0 #> dctime <# (_accel_time_res * 255)) / _accel_time_res)
-    writereg(core.TIME_WINDOW, dctime)
+    t := ((0 #> t <# (_accel_time_res * 255)) / _accel_time_res)
+    writereg(core.TIME_WINDOW, t)
 
 
-PUB fifo_ena(state=-2): curr_state
+PUB fifo_ena(e=-2): c
 ' Enable FIFO memory
 '   Valid values: FALSE (0), TRUE(1 or -1)
 '   Any other value polls the chip and returns the current setting
-    curr_state := readreg(core.CTRL_REG5)
-    case ||(state)
+    c := readreg(core.CTRL_REG5)
+    case ||(e)
         0, 1:
-            state := ||(state) << core.FIFO_EN
+            e := ||(e) << core.FIFO_EN
         other:
-            return (((curr_state >> core.FIFO_EN) & 1) == 1)
+            return (((c >> core.FIFO_EN) & 1) == 1)
 
-    state := ((curr_state & core.FIFO_EN_MASK) | state)
-    writereg(core.CTRL_REG5, state)
+    e := ((c & core.FIFO_EN_MASK) | e)
+    writereg(core.CTRL_REG5, e)
 
 
-PUB fifo_empty(): flag
+PUB fifo_empty(): f
 ' Flag indicating FIFO is empty
 '   Returns: FALSE (0): FIFO contains at least one sample, TRUE(-1): FIFO is empty
-    flag := readreg(core.FIFO_SRC_REG)
-    return (((flag >> core.EMPTY) & 1) == 1)
+    f := readreg(core.FIFO_SRC_REG)
+    return (((f >> core.EMPTY) & 1) == 1)
 
 
-PUB fifo_full(): flag
+PUB fifo_full(): f
 ' Flag indicating FIFO is full
 '   Returns: FALSE (0): FIFO contains less than 32 samples, TRUE(-1): FIFO contains 32 samples
-    flag := readreg(core.FIFO_SRC_REG)
-    return (((flag >> core.OVRN_FIFO) & 1) == 1)
+    f := readreg(core.FIFO_SRC_REG)
+    return (((f >> core.OVRN_FIFO) & 1) == 1)
 
 
-PUB fifo_mode(mode=-2): curr_mode
+PUB fifo_mode(m=-2): c
 ' Set FIFO behavior
 '   Valid values:
 '       BYPASS      (%00) - Bypass mode - FIFO off
@@ -537,37 +537,37 @@ PUB fifo_mode(mode=-2): curr_mode
 '       STREAM      (%10) - Stream mode
 '       STREAM2FIFO (%11) - Stream-to-FIFO mode
 '   Any other value polls the chip and returns the current setting
-    curr_mode := readreg(core.FIFO_CTRL_REG)
-    case mode
+    c := readreg(core.FIFO_CTRL_REG)
+    case m
         BYPASS, FIFO, STREAM, STREAM2FIFO:
-            mode <<= core.FM
+            m <<= core.FM
         other:
-            return ((curr_mode >> core.FM) & core.FM_BITS)
+            return ((c >> core.FM) & core.FM_BITS)
 
-    mode := ((curr_mode & core.FM_MASK) | mode)
-    writereg(core.FIFO_CTRL_REG, mode)
+    m := ((c & core.FM_MASK) | m)
+    writereg(core.FIFO_CTRL_REG, m)
 
 
-PUB fifo_thresh(thresh=-2): curr_thr
+PUB fifo_thresh(t=-2): c
 ' Set FIFO threshold thresh
 '   Valid values: 1..32
 '   Any other value polls the chip and returns the current setting
-    curr_thr := readreg(core.FIFO_CTRL_REG)
-    case thresh
+    c := readreg(core.FIFO_CTRL_REG)
+    case t
         1..32:
-            thresh -= 1
+            t -= 1
         other:
-            return ((curr_thr & core.FTH_BITS) + 1)
+            return ((c & core.FTH_BITS) + 1)
 
-    thresh := ((curr_thr & core.FTH_MASK) | thresh)
-    writereg(core.FIFO_CTRL_REG, thresh)
+    t := ((c & core.FTH_MASK) | t)
+    writereg(core.FIFO_CTRL_REG, t)
 
 
-PUB fifo_nr_unread(): nr_samples
+PUB fifo_nr_unread(): s
 ' Number of unread samples stored in FIFO
 '   Returns: 1..32
-    nr_samples := readreg(core.FIFO_SRC_REG)
-    return ((nr_samples & core.FSS_BITS) + 1)
+    s := readreg(core.FIFO_SRC_REG)
+    return ((s & core.FSS_BITS) + 1)
 
 
 #ifdef LSM303AGR
@@ -736,63 +736,63 @@ PUB mag_data(mx, my, mz) | tmp[2]
     long[mz] := ~~tmp.word[1] - _mbias[Z_AXIS]
 
 
-PUB mag_data_rate(rate=-2): curr_rate
+PUB mag_data_rate(r=-2): c
 ' Set Magnetometer Output Data Rate, in Hz
 '   Valid values: 0 (0.75), 1 (1.5), 3, 7 (7.5), *15, 30, 75, 220
 '   Any other value polls the chip and returns the current setting
-    curr_rate := readreg(core.CRA_REG_M)
-    case rate
+    c := readreg(core.CRA_REG_M)
+    case r
         0, 1, 3, 7, 15, 30, 75, 220:
-            rate := lookdownz(rate: 0, 1, 3, 7, 15, 30, 75, 220) << core.DO
+            r := lookdownz(r: 0, 1, 3, 7, 15, 30, 75, 220) << core.DO
         other:
-            curr_rate := ((curr_rate >> core.DO) & core.DO_BITS)
-            return lookupz(curr_rate: 0, 1, 3, 7, 15, 30, 75, 220)
+            c := ((c >> core.DO) & core.DO_BITS)
+            return lookupz(c: 0, 1, 3, 7, 15, 30, 75, 220)
 
-    rate := ((curr_rate & core.DO_MASK) | rate)
-    writereg(core.CRA_REG_M, rate)
+    r := ((c & core.DO_MASK) | r)
+    writereg(core.CRA_REG_M, r)
 
 
-PUB mag_data_rdy(): flag
+PUB mag_data_rdy(): f
 '   Flag indicating new magnetometer data available
 '       Returns: TRUE(-1) if data available, FALSE otherwise
-    flag := readreg(core.SR_REG_M)
+    f := readreg(core.SR_REG_M)
     return ((readreg(core.SR_REG_M) & core.DRDY_BITS) == 0)
 
 
-PUB mag_opmode(mode=-2): curr_mode
+PUB mag_opmode(m=-2): c
 ' Set magnetometer operating mode
 '   Valid values:
 '       CONT (0): Continuous conversion
 '       SINGLE (1): Single conversion
 '       SLEEP (2, 3): Power down
-    case mode
+    case m
         CONT, SINGLE, SLEEP, 3:
-            mode &= core.MR_REG_M_MASK
-            writereg(core.MR_REG_M, mode)
+            m &= core.MR_REG_M_MASK
+            writereg(core.MR_REG_M, m)
         other:
-            curr_mode := readreg(core.MR_REG_M)
-            return (curr_mode & core.MD_BITS)
+            c := readreg(core.MR_REG_M)
+            return (c & core.MD_BITS)
 
 
-PUB mag_scale(scale=-2): curr_scl
+PUB mag_scale(s=-2): c
 ' Set full scale of Magnetometer, in Gauss
 '   Valid values: *1 (1.3), 2 (1.9), 3 (2.5), 4, 5 (4.7), 6 (5.6), 8 (8.1)
 '   Any other value polls the chip and returns the current setting
-    case scale
+    case s
         1, 2, 3, 4, 5, 6, 8:
-            scale := lookdown(scale: 1, 2, 3, 4, 5, 6, 8)
-            _mres[X_AXIS] := lookup(scale:  0_000909, 0_001169, 0_001492, 0_002222, 0_002500, ...
+            s := lookdown(s: 1, 2, 3, 4, 5, 6, 8)
+            _mres[X_AXIS] := lookup(s:  0_000909, 0_001169, 0_001492, 0_002222, 0_002500, ...
                                             0_003030, 0_004347)
-            _mres[Y_AXIS] := lookup(scale:  0_000909, 0_001169, 0_001492, 0_002222, 0_002500, ...
+            _mres[Y_AXIS] := lookup(s:  0_000909, 0_001169, 0_001492, 0_002222, 0_002500, ...
                                             0_003030, 0_004347)
-            _mres[Z_AXIS] := lookup(scale:  0_001020, 0_001315, 0_001666, 0_002500, 0_002816, ...
+            _mres[Z_AXIS] := lookup(s:  0_001020, 0_001315, 0_001666, 0_002500, 0_002816, ...
                                             0_003389, 0_004878)
-            scale <<= core.GN
-            writereg(core.CRB_REG_M, scale)
+            s <<= core.GN
+            writereg(core.CRB_REG_M, s)
         other:
-            curr_scl := readreg(core.CRB_REG_M)
-            curr_scl := (curr_scl >> core.GN) & core.GN_BITS
-            return lookup(curr_scl: 1, 2, 3, 4, 5, 6, 8)
+            c := readreg(core.CRB_REG_M)
+            c := (c >> core.GN) & core.GN_BITS
+            return lookup(c: 1, 2, 3, 4, 5, 6, 8)
 
 #endif
 
